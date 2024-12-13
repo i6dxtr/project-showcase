@@ -2,6 +2,7 @@
 implementation of a pre-trained image labelling machine learning model using tensorflow/pytorch frameworks (ResNet50, EfficientNet, VGG16) for use in the project showcase thing
 ## todo:
 rough outline very abstract for now
+### Machine Learning
 1. gather sufficient amount of training data (eg. 5 products, about 50 images each, photos taken from various angles, lighting conditions, etc.)
 2. find an appropriate model (those mentioned above) OR just use traditional computer vision machine learning approaches:
    - feature extraction implementations eg. SIFT, ORB
@@ -18,4 +19,10 @@ rough outline very abstract for now
    - nutrition information possible
    - others...
 4. send relevant information back to sender
-
+### Device
+1. device is prompted by the user to take a photo
+2. device uses networking capabilities somehow to send image information through network to machine hosting the classification model
+3. machine learnign stuff
+4. device receives relevant information
+5. information iterated through speaker module on device to user
+6. profit
