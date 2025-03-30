@@ -1,6 +1,5 @@
 import pyttsx3
 
-
 products = {
     "morton coarse kosher salt": {
         "calories": 0,
