@@ -38,34 +38,42 @@ def get_product_info(product_name: str) -> str:
                    "Please try another product name.")
     return message
 
-def speak_text(text: str):
+def speak_text(text: str) -> None:
     """
     Convert text to speech using Google TTS and play immediately
     """
+    temp_file = "temp_speech.mp3"
     try:
-        # Initialize pygame mixer
-        mixer.init()
-        
-        # Generate and save the speech
+        # Generate speech file
         tts = gTTS(text=text, lang='en')
-        tts.save("temp.mp3")
         
-        # Load and play the audio
-        mixer.music.load("temp.mp3")
+        # Remove existing file if it exists
+        if os.path.exists(temp_file):
+            os.remove(temp_file)
+            
+        # Save new speech file
+        tts.save(temp_file)
+        
+        # Initialize and play audio
+        mixer.init()
+        mixer.music.load(temp_file)
         mixer.music.play()
         
-        # Wait for the audio to finish
+        # Wait for audio to finish
         while mixer.music.get_busy():
             time.sleep(0.1)
             
-        # Clean up
+        # Cleanup
         mixer.music.unload()
         mixer.quit()
-        os.remove("temp.mp3")
         
+        # Remove temporary file
+        if os.path.exists(temp_file):
+            os.remove(temp_file)
+            
     except Exception as e:
         print(f"Error in text-to-speech: {e}")
-        # Fallback to pyttsx3 if gTTS fails
+        # Fallback to pyttsx3
         import pyttsx3
         engine = pyttsx3.init()
         engine.say(text)

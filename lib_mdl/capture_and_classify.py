@@ -5,7 +5,7 @@ from tensorflow.keras.models import load_model
 from announce_product import announce_product  # Import from the new file
 
 # Load the trained model
-model = load_model('my_product_classifier.h5')
+model = load_model('my_product_classifier_BETTER.h5')
 
 # Define the folder to save captured images
 capture_folder = '../data/captured_images'
