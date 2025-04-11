@@ -2,7 +2,8 @@ import cv2
 import os
 import numpy as np
 from tensorflow.keras.models import load_model
-from announce_product import announce_product  # Import from the new file
+from announce_product import announce_product
+import threading # this does... something?
 
 # Load the trained model
 model = load_model('my_product_classifier_BETTER.h5')
@@ -36,47 +37,52 @@ def predict_image(model, img_path):
 
     return predicted_label
 
-# Initialize webcam
-cap = cv2.VideoCapture(0)
+def process_image(image_path, frame):
+    """Process the captured image and announce results"""
+    cv2.imwrite(image_path, frame)
+    print(f"Image saved to {image_path}")
+    
+    prediction = predict_image(model, image_path)
+    print("Predicted:", prediction)
+    
+    announce_product(prediction)
 
-if not cap.isOpened():
-    print("Error: Could not open webcam.")
-    exit()
+def main():
+    cap = cv2.VideoCapture(0)
+    if not cap.isOpened():
+        print("Error: Could not open webcam.")
+        return
 
-print("Press 'c' to capture an image or 'q' to quit.")
+    print("Press 'c' to capture an image or 'q' to quit.")
+    processing_thread = None
 
-while True:
-    # Capture frame-by-frame
-    ret, frame = cap.read()
+    while True:
+        ret, frame = cap.read()
+        if not ret:
+            print("Error: Failed to capture image.")
+            break
 
-    if not ret:
-        print("Error: Failed to capture image.")
-        break
+        cv2.imshow('Webcam', frame)
+        key = cv2.waitKey(1) & 0xFF
 
-    # Display the frame
-    cv2.imshow('Webcam', frame)
+        if key == ord('c'):
+            if processing_thread and processing_thread.is_alive():
+                print("Still processing previous image...")
+                continue
+                
+            image_path = os.path.join(capture_folder, 'captured_image.jpg')
+            processing_thread = threading.Thread(
+                target=process_image,
+                args=(image_path, frame.copy())  # Use frame.copy() to avoid reference issues
+            )
+            processing_thread.daemon = True
+            processing_thread.start()
 
-    # Wait for key press
-    key = cv2.waitKey(1) & 0xFF
+        elif key == ord('q'):
+            break
 
-    # Capture image on 'c' key press
-    if key == ord('c'):
-        # Save the captured image
-        image_path = os.path.join(capture_folder, 'captured_image.jpg')
-        cv2.imwrite(image_path, frame)
-        print(f"Image saved to {image_path}")
+    cap.release()
+    cv2.destroyAllWindows()
 
-        # Predict the class of the captured image
-        prediction = predict_image(model, image_path)
-        print("Predicted:", prediction)
-
-        # Announce the product
-        announce_product(prediction)
-
-    # Exit on 'q' key press
-    elif key == ord('q'):
-        break
-
-# Release the webcam and close windows
-cap.release()
-cv2.destroyAllWindows()
+if __name__ == "__main__":
+    main()
