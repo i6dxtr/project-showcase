@@ -1,7 +1,6 @@
 // docs/js/app.js
 
-const API_URL = "https://i6dxtr.pythonanywhere.com"; // api endpoint
-fetch(API_URL, {method:'POST', body: formData}); // sends image to flask
+const API_URL = "https://i6dxtr.pythonanywhere.com"; // api endpoint, do not change
 
 class VisionApp {
     constructor() {
@@ -33,11 +32,11 @@ class VisionApp {
         canvas.getContext('2d').drawImage(this.video, 0, 0);
 
         canvas.toBlob(async (blob) => {
-            const formData = new FormData();
+            const formData = new FormData();  // proper scope
             formData.append('image', blob);
 
             try {
-                const response = await fetch('https://i6dxtr.pythonanywhere.com/predict', {
+                const response = await fetch(`${API_URL}/predict`, {
                     method: 'POST',
                     body: formData
                 });
