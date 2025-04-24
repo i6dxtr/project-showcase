@@ -1,4 +1,8 @@
 // docs/js/app.js
+
+const API_URL = "https://i6dxtr.pythonanywhere.com"; // flask api endpoint
+fetch(API_URL, {method:'POST', body: formData}); // sends image to flask
+
 class VisionApp {
     constructor() {
         this.video = document.getElementById('video');
