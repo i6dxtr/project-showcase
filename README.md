@@ -1,28 +1,37 @@
 # project-showcase
-implementation of a pre-trained image labelling machine learning model using tensorflow/pytorch frameworks (ResNet50, EfficientNet, VGG16) for use in the project showcase thing
-## todo:
-rough outline very abstract for now
-### Machine Learning
-1. gather sufficient amount of training data (eg. 5 products, about 50 images each, photos taken from various angles, lighting conditions, etc.)
-2. find an appropriate model (those mentioned above) OR just use traditional computer vision machine learning approaches:
-   - feature extraction implementations eg. SIFT, ORB
-   - basic image classifiers eg. support vector machines, nearest neighbors
-   - this would probably be better for smaller datasets
-3. extract features --> pipeline to training --> get model ready for predictions
-#### Post Training
-1. set up networking communication interface w/ hardware processor on the prototype device itself and the machine hosting the classification model
-     - obviously going to be space constraints on the hardware so model should be hosted on either a virtual server or someone's desktop machine (that won't go down)
-2. handle incoming image information and feed into the model for predictions
-3. compile predictions and align them appropriately with internal dataset information
-   - price of item
-   - brand name
-   - nutrition information possible
-   - others...
-4. send relevant information back to sender
-### Device
-1. device is prompted by the user to take a photo
-2. device uses networking capabilities somehow to send image information through network to machine hosting the classification model
-3. machine learnign stuff
-4. device receives relevant information
-5. information iterated through speaker module on device to user
-6. profit
+implementation of a pre-trained image labelling machine learning model using tensorflow/pytorch frameworks (ResNet50, EfficientNet, VGG16) for use in the ~~project showcase thing~~ mucat competition
+# general description
+## Use Case:
+- If a customer has no phone, the desk can provide a cheap loaner phone for this purpose. Customer walks into store and goes to customer service desk.
+   - Case 1: Customer is far-sighted and may struggled to read the labels for a product
+   - Case 2: Customer is non-native speaker and struggles with language barriers regarding interpreting details on products
+- Customer finds item in store
+- Takes picture using phone camera and upload to website
+- User selects language
+- Website outputs via website AND speaker what the object is
+- Website gives user some potential prompts to ask about
+   - Allergen information
+   - Nutrition facts
+   - Price
+   - etc
+- User selects prompt
+- Website outputs via website OR speaker information
+- Asks user if they want more information
+- Repeat as needed
+
+## Project information:
+### Front end:
+- Website using HTML, CSS, Bootstrap
+   - Choose what language customer wants it in
+   - Upload a picture via camera of object
+- Send image to backend
+   - Classify image using customer database training images OR alternatively use text extraction and match to a brand name (could combine)
+- Tell the user the product
+- Give user prompts to ask about
+   - Allergen Information
+   - Nutrition Facts
+   - Price
+- User selects prompt
+   - Vanna AI handles this
+- Route Vanna AI output to website AND speaker (using TTS)
+- Profit
