@@ -6,7 +6,7 @@ import cv2
 import numpy as np
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, origins=['https://i6dxtr.github.io'])
 
 # Load model
 model = tf.keras.models.load_model('model/my_product_classifier.h5')

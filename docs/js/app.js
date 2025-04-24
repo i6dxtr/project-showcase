@@ -1,6 +1,6 @@
 // docs/js/app.js
 
-const API_URL = "https://i6dxtr.pythonanywhere.com"; // flask api endpoint
+const API_URL = "https://i6dxtr.pythonanywhere.com"; // api endpoint
 fetch(API_URL, {method:'POST', body: formData}); // sends image to flask
 
 class VisionApp {
@@ -37,7 +37,7 @@ class VisionApp {
             formData.append('image', blob);
 
             try {
-                const response = await fetch('http://localhost:5000/predict', {
+                const response = await fetch('https://i6dxtr.pythonanywhere.com/predict', {
                     method: 'POST',
                     body: formData
                 });
