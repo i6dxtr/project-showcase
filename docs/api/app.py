@@ -11,24 +11,59 @@ import sys
 app = Flask(__name__)
 CORS(app, origins=['https://i6dxtr.github.io']) # do not change this
 
-print(f"Current working directory: {os.getcwd()}", file=sys.stderr) # debugging. i hate PATH stuff so much i hate it so much
-
-model = tf.keras.models.load_model('/home/i6dxtr/docs/api/model/my_product_classifier_BETTER.h5') # DO NOT CHANGE THIS PATH
+# model now loads once, globally
+print("Loading model...", file=sys.stderr)
+MODEL_PATH = '/home/i6dxtr/docs/api/model/my_product_classifier_BETTER.h5' # DO NOT CHANGE THIS PATH
+model = tf.keras.models.load_model(MODEL_PATH)
+# dummy prediction
+warmup_data = np.zeros((1, 224, 224, 3))
+_ = model.predict(warmup_data)
+print("Model loaded and warmed up", file=sys.stderr)
 
 @app.route('/predict', methods=['POST'])
 def predict():
+    print("Predict endpoint called", file=sys.stderr)
+    print(f"Files in request: {request.files}", file=sys.stderr)
+    print(f"Content Type: {request.content_type}", file=sys.stderr)
+    print(f"Headers: {request.headers}", file=sys.stderr)
+    
     try:
+        if 'image' not in request.files:
+            print("No image in request.files", file=sys.stderr)
+            return jsonify({'error': 'No image provided'}), 400
+            
+        # file = request.files['image']
+        # print(f"Received file: {file.filename}", file=sys.stderr)
+        
+        # if file.filename == '':
+        #     return jsonify({'error': 'No selected file'}), 400
+
+        # file = request.files['image']
+        # nparr = np.frombuffer(file.read(), np.uint8)
+        # img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        
+        # img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        # img_resized = cv2.resize(img, (224, 224))
+        # img_array = np.expand_dims(img_resized / 255.0, axis=0)
+
+        # predictions = model.predict(img_array)
+        # predicted_class_index = np.argmax(predictions, axis=1)[0]
+        # # predicted_label = index_to_class[predicted_class_index] # who knows
+
         file = request.files['image']
-        nparr = np.frombuffer(file.read(), np.uint8)
+        # one shot
+        file_bytes = file.read()
+        nparr = np.frombuffer(file_bytes, np.uint8)
         img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
         
+        # batch process image transformations
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         img_resized = cv2.resize(img, (224, 224))
         img_array = np.expand_dims(img_resized / 255.0, axis=0)
 
-        predictions = model.predict(img_array)
+        # t/o for predictions
+        predictions = model.predict(img_array, batch_size=1)
         predicted_class_index = np.argmax(predictions, axis=1)[0]
-        # predicted_label = index_to_class[predicted_class_index] # who knows
         
         return jsonify({
             'prediction': int(predicted_class_index) # these are just numbers for now
