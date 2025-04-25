@@ -8,9 +8,20 @@ class VisionApp {
         this.captureButton = document.getElementById('capture');
         this.resultDiv = document.getElementById('result');
         
-        this.setupCamera();
+        this.initializeCamera();
         this.setupEventListeners();
     }
+
+    async initializeCamera() {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            this.video.srcObject = stream;
+        } catch (err) {
+            console.error('Camera error:', err);
+            this.resultDiv.textContent = 'Error: Camera access denied';
+        }
+    }
+
 
     async captureImage() {
         this.resultDiv.textContent = 'Processing...';
