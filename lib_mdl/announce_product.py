@@ -2,9 +2,10 @@ from gtts import gTTS
 import os
 from pygame import mixer
 import time
+from typing import Dict, Any
 
 # Product information dictionary
-products = {
+products: Dict[str, Dict[str, Any]] = {
     "morton coarse kosher salt": {
         "calories": 0,
         "price": "$2.99"

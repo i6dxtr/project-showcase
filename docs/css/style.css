@@ -1,0 +1,16 @@
+/* docs/css/style.css */
+.container {
+    text-align: center;
+    padding: 20px;
+}
+
+#video {
+    width: 640px;
+    height: 480px;
+    margin-bottom: 20px;
+}
+
+#result {
+    margin-top: 20px;
+    font-size: 1.2em;
+}
