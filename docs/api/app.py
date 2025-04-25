@@ -13,8 +13,7 @@ CORS(app, origins=['https://i6dxtr.github.io']) # do not change this
 
 print(f"Current working directory: {os.getcwd()}", file=sys.stderr) # debugging. i hate PATH stuff so much i hate it so much
 
-# place the classifier inside same directory
-model = tf.keras.models.load_model('/home/i6dxtr/docs/api/model/my_product_classifier_BETTER.h5') # emphasis on 'better'
+model = tf.keras.models.load_model('/home/i6dxtr/docs/api/model/my_product_classifier_BETTER.h5') # DO NOT CHANGE THIS PATH
 
 @app.route('/predict', methods=['POST'])
 def predict():
