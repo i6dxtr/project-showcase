@@ -10,7 +10,7 @@ app = Flask(__name__)
 CORS(app, origins=['https://i6dxtr.github.io']) # do not change this
 
 # place the classifier inside same directory
-model = tf.keras.models.load_model('home/i6dxtr/docs/api/model/my_product_classifier_BETTER.h5') # emphasis on 'better'
+model = tf.keras.models.load_model('/docs/api/model/my_product_classifier_BETTER.h5') # emphasis on 'better'
 
 @app.route('/predict', methods=['POST'])
 def predict():
