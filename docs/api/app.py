@@ -1,15 +1,16 @@
 # docs/api/app.py
-from flask import Flask, request, jsonify  # needs flask
-from flask_cors import CORS               # needs flask-cors
-import tensorflow as tf                   # needs tensorflow
-import cv2                               # needs opencv-python-headless
-import numpy as np                       # needs numpy
+# these are necessary imports for the backend too, please indicate if any have been added
+from flask import Flask, request, jsonify  # needs flask -- done
+from flask_cors import CORS               # needs flask-cors -- done
+import tensorflow as tf                   # needs tensorflow -- done
+import cv2                               # needs opencv-python-headless -- done
+import numpy as np                       # needs numpy -- done
 
 app = Flask(__name__)
 CORS(app, origins=['https://i6dxtr.github.io']) # do not change this
 
 # place the classifier inside same directory
-model = tf.keras.models.load_model('my_product_classifier_BETTER.h5') # emphasis on 'better'
+model = tf.keras.models.load_model('/home/i6dxtr/model/my_product_classifier_BETTER.h5') # emphasis on 'better'
 
 @app.route('/predict', methods=['POST'])
 def predict():
@@ -24,16 +25,25 @@ def predict():
 
         predictions = model.predict(img_array)
         predicted_class_index = np.argmax(predictions, axis=1)[0]
-        predicted_label = index_to_class[predicted_class_index]
+        # predicted_label = index_to_class[predicted_class_index] # who knows
         
         return jsonify({
-            'prediction': predicted_label
+            'prediction': int(predicted_class_index) # these are just numbers for now
         })
     
     except Exception as e:
         return jsonify({
             'error': str(e)
         }), 500
+
+@app.route('/')
+def index():
+    return jsonify({
+        'status': 'API is running',
+        'endpoints': {
+            'predict': '/predict (POST) - Send an image for classification'
+        }
+    })
 
 if __name__ == '__main__':
     app.run(debug=True)

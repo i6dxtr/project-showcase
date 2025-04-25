@@ -1,6 +1,6 @@
 // docs/js/app.js
 
-const API_URL = "https://i6dxtr.pythonanywhere.com"; // api endpoint, do not change
+const API_URL = "https://i6dxtr.pythonanywhere.com"; // do not change this
 
 class VisionApp {
     constructor() {
