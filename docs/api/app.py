@@ -5,12 +5,18 @@ from flask_cors import CORS               # needs flask-cors -- done
 import tensorflow as tf                   # needs tensorflow -- done
 import cv2                               # needs opencv-python-headless -- done
 import numpy as np                       # needs numpy -- done
+import os
+import sys
 
 app = Flask(__name__)
 CORS(app, origins=['https://i6dxtr.github.io']) # do not change this
 
+print(f"Current working directory: {os.getcwd()}", file=sys.stderr) # debugging. i hate PATH stuff so much i hate it so much
+current_dir = os.path.dirname(os.path.abspath(__file__))
+model_path = os.path.join(current_dir, '../../model/my_product_classifier_BETTER.h5')
+
 # place the classifier inside same directory
-model = tf.keras.models.load_model('/docs/api/model/my_product_classifier_BETTER.h5') # emphasis on 'better'
+model = tf.keras.models.load_model(model_path) # emphasis on 'better'
 
 @app.route('/predict', methods=['POST'])
 def predict():
