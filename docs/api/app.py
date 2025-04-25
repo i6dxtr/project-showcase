@@ -1,9 +1,9 @@
 # docs/api/app.py
-from flask import Flask, request, jsonify
-from flask_cors import CORS
-import tensorflow as tf
-import cv2
-import numpy as np
+from flask import Flask, request, jsonify  # needs flask
+from flask_cors import CORS               # needs flask-cors (missing, apparently?)
+import tensorflow as tf                   # needs tensorflow
+import cv2                               # needs opencv-python-headless
+import numpy as np                       # needs numpy
 
 app = Flask(__name__)
 CORS(app, origins=['https://i6dxtr.github.io']) # do not change this
