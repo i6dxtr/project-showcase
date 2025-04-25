@@ -1,6 +1,6 @@
 # docs/api/app.py
 from flask import Flask, request, jsonify  # needs flask
-from flask_cors import CORS               # needs flask-cors (missing, apparently?)
+from flask_cors import CORS               # needs flask-cors
 import tensorflow as tf                   # needs tensorflow
 import cv2                               # needs opencv-python-headless
 import numpy as np                       # needs numpy
@@ -9,7 +9,7 @@ app = Flask(__name__)
 CORS(app, origins=['https://i6dxtr.github.io']) # do not change this
 
 # place the classifier inside same directory
-model = tf.keras.models.load_model('model/my_product_classifier_BETTER.h5') # emphasis on 'better'
+model = tf.keras.models.load_model('my_product_classifier_BETTER.h5') # emphasis on 'better'
 
 @app.route('/predict', methods=['POST'])
 def predict():
