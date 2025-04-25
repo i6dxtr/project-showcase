@@ -8,8 +8,8 @@ import numpy as np                       # needs numpy
 app = Flask(__name__)
 CORS(app, origins=['https://i6dxtr.github.io']) # do not change this
 
-# Load model
-model = tf.keras.models.load_model('model/my_product_classifier.h5')
+# place the classifier inside same directory
+model = tf.keras.models.load_model('model/my_product_classifier_BETTER.h5') # emphasis on 'better'
 
 @app.route('/predict', methods=['POST'])
 def predict():
