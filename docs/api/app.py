@@ -14,10 +14,12 @@ index_to_class = None
 @app.before_first_request
 def load_and_warm_model():
     global model, index_to_class
-    MODEL_PATH = '/home/i6dxtr/docs/api/model/my_product_classifier_BETTER.h5'
-    MAPPING_PATH = os.path.join(os.path.dirname(__file__), '..', 'lib_mdl', 'class_mapping.json')
-
-    print("⏳ Loading model…", file=sys.stderr)
+    
+    print("Loading model and mapping...")
+    MODEL_PATH = '/home/i6dxtr/docs/api/model/my_product_classifier_BETTER.h5' # DO NOT CHANGE THIS PATH
+    MAPPING_PATH = '/home/i6dxtr/lib_mdl/class_mapping.json' 
+    
+    # Load model
     model = tf.keras.models.load_model(MODEL_PATH)
 
     print("⏳ Loading class mapping…", file=sys.stderr)
