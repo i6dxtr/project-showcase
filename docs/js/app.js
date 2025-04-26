@@ -16,11 +16,12 @@ class VisionApp {
 
     async getCameraDevices() {
         try {
-            // We need to have active media stream before enumerateDevices will work properly
+            // First ensure we have camera permissions by getting a stream
             if (!this.currentStream) {
                 await this.initializeCamera();
             }
             
+            // Now enumerate devices
             const devices = await navigator.mediaDevices.enumerateDevices();
             this.availableDevices = devices.filter(device => device.kind === 'videoinput');
             
@@ -30,25 +31,22 @@ class VisionApp {
             this.resultDiv.textContent = 'Error: Could not access camera devices';
         }
     }
-
+    
     populateCameraSelect() {
         this.cameraSelect.innerHTML = '';
         
-        // Add option for front camera (user-facing)
-        this.cameraSelect.add(new Option('Front Camera', 'user'));
-        
-        // Add option for rear camera (environment-facing)
+        // Always add generic options first
+        this.cameraSelect.add(new Option('Front Camera (Default)', 'user'));
         this.cameraSelect.add(new Option('Rear Camera', 'environment'));
         
-        // Also add any specific devices we found
+        // Add specific devices if available
         this.availableDevices.forEach((device, index) => {
-            this.cameraSelect.add(new Option(
-                device.label || `Camera ${index + 1}`,
-                device.deviceId
-            ));
+            // In Safari, device labels are often blank until used
+            const label = device.label || `Camera ${index + 1}`;
+            this.cameraSelect.add(new Option(label, device.deviceId));
         });
     }
-
+    
     async initializeCamera(deviceIdOrMode = 'user') {
         // Stop any existing stream
         if (this.currentStream) {
@@ -59,38 +57,48 @@ class VisionApp {
             const constraints = {
                 video: {
                     width: { ideal: 1280 },
-                    height: { ideal: 720 }
+                    height: { ideal: 720 },
+                    // For iOS Safari, we need to be more specific
+                    ...(typeof deviceIdOrMode === 'string' && 
+                        (deviceIdOrMode === 'user' || deviceIdOrMode === 'environment') ? {
+                        facingMode: { exact: deviceIdOrMode }
+                    } : {
+                        deviceId: { exact: deviceIdOrMode }
+                    })
                 }
             };
-            
-            // Handle special cases for front/rear
-            if (deviceIdOrMode === 'user' || deviceIdOrMode === 'environment') {
-                constraints.video.facingMode = { exact: deviceIdOrMode };
-            } else {
-                constraints.video.deviceId = { exact: deviceIdOrMode };
-            }
-            
-            const stream = await navigator.mediaDevices.getUserMedia(constraints);
+    
+            // For iOS, we might need to try different approaches
+            const stream = await navigator.mediaDevices.getUserMedia(constraints)
+                .catch(async (err) => {
+                    // Fallback to more generic constraints if specific mode fails
+                    if (deviceIdOrMode === 'user' || deviceIdOrMode === 'environment') {
+                        return navigator.mediaDevices.getUserMedia({
+                            video: {
+                                facingMode: deviceIdOrMode
+                            }
+                        });
+                    }
+                    throw err;
+                });
+    
             this.video.srcObject = stream;
             this.currentStream = stream;
             
             // Refresh device list now that we have permission
-            if (this.availableDevices.length === 0) {
-                this.getCameraDevices();
-            }
+            await this.getCameraDevices();
         } catch (err) {
             console.error('Camera error:', err);
             this.resultDiv.textContent = 'Error: Camera access - ' + err.message;
             
-            // Try fallback to basic video if specific mode fails
-            if (deviceIdOrMode === 'user' || deviceIdOrMode === 'environment') {
-                try {
-                    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-                    this.video.srcObject = stream;
-                    this.currentStream = stream;
-                } catch (fallbackErr) {
-                    console.error('Fallback camera error:', fallbackErr);
-                }
+            // Try complete fallback
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                this.video.srcObject = stream;
+                this.currentStream = stream;
+                await this.getCameraDevices();
+            } catch (fallbackErr) {
+                console.error('Fallback camera error:', fallbackErr);
             }
         }
     }
