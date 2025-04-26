@@ -1,19 +1,10 @@
 /* docs/css/style.css */
+
 /* General container */
 .container {
     max-width: 720px;
     margin: auto;
     text-align: center;
-}
-
-/* Video element itself */
-#video {
-    width: 100%;
-    height: auto;
-    max-height: 480px;
-    background-color: black;
-    border: 2px solid #ddd;
-    border-radius: 8px;
 }
 
 /* Video container (wraps video + canvas) */
@@ -24,8 +15,16 @@
     height: 500px;
     background-color: #000;
     border-radius: 0.25rem;
-    overflow: hidden;
+    overflow: hidden;       /* crop anything that overflows */
     margin: 0 auto 1rem auto;
+}
+
+/* Remove the default border on the <video> itself —
+   the container now provides the rounded frame */
+#video {
+    background-color: black;
+    border: none;
+    border-radius: 0;
 }
 
 /* Video and Canvas inside the container */
@@ -36,7 +35,8 @@
     left: 0;
     width: 100%;
     height: 100%;
-    object-fit: contain;
+    object-fit: cover;      /* fill & crop to container size */
+    object-position: center;
     background-color: black;
 }
 
@@ -59,5 +59,5 @@
 }
 
 .fade {
-    transition: opacity 0.3s ease-in-out; /* or 0.5s for slower */
+    transition: opacity 0.3s ease-in-out;
 }
