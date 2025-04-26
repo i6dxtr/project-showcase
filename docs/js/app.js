@@ -10,33 +10,46 @@ class VisionApp {
         this.currentStream = null;
         
         this.setupEventListeners();
+        this.initializeCamera(); // Start with default camera first
         this.getCameraDevices();
     }
 
     async getCameraDevices() {
         try {
+            // We need to have active media stream before enumerateDevices will work properly
+            if (!this.currentStream) {
+                await this.initializeCamera();
+            }
+            
             const devices = await navigator.mediaDevices.enumerateDevices();
             this.availableDevices = devices.filter(device => device.kind === 'videoinput');
             
-            this.cameraSelect.innerHTML = '<option value="">Select Camera...</option>';
-            this.availableDevices.forEach((device, index) => {
-                this.cameraSelect.innerHTML += `
-                    <option value="${device.deviceId}">${device.label || `Camera ${index + 1}`}</option>
-                `;
-            });
-            
-            // If only one camera is available, select it automatically
-            if (this.availableDevices.length === 1) {
-                this.cameraSelect.value = this.availableDevices[0].deviceId;
-                this.initializeCamera(this.availableDevices[0].deviceId);
-            }
+            this.populateCameraSelect();
         } catch (err) {
             console.error('Error enumerating devices:', err);
             this.resultDiv.textContent = 'Error: Could not access camera devices';
         }
     }
 
-    async initializeCamera(deviceId) {
+    populateCameraSelect() {
+        this.cameraSelect.innerHTML = '';
+        
+        // Add option for front camera (user-facing)
+        this.cameraSelect.add(new Option('Front Camera', 'user'));
+        
+        // Add option for rear camera (environment-facing)
+        this.cameraSelect.add(new Option('Rear Camera', 'environment'));
+        
+        // Also add any specific devices we found
+        this.availableDevices.forEach((device, index) => {
+            this.cameraSelect.add(new Option(
+                device.label || `Camera ${index + 1}`,
+                device.deviceId
+            ));
+        });
+    }
+
+    async initializeCamera(deviceIdOrMode = 'user') {
         // Stop any existing stream
         if (this.currentStream) {
             this.currentStream.getTracks().forEach(track => track.stop());
@@ -45,17 +58,40 @@ class VisionApp {
         try {
             const constraints = {
                 video: {
-                    deviceId: deviceId ? { exact: deviceId } : undefined,
-                    facingMode: deviceId ? undefined : 'user' // Default to front camera if no deviceId
+                    width: { ideal: 1280 },
+                    height: { ideal: 720 }
                 }
             };
+            
+            // Handle special cases for front/rear
+            if (deviceIdOrMode === 'user' || deviceIdOrMode === 'environment') {
+                constraints.video.facingMode = { exact: deviceIdOrMode };
+            } else {
+                constraints.video.deviceId = { exact: deviceIdOrMode };
+            }
             
             const stream = await navigator.mediaDevices.getUserMedia(constraints);
             this.video.srcObject = stream;
             this.currentStream = stream;
+            
+            // Refresh device list now that we have permission
+            if (this.availableDevices.length === 0) {
+                this.getCameraDevices();
+            }
         } catch (err) {
             console.error('Camera error:', err);
-            this.resultDiv.textContent = 'Error: Camera access denied';
+            this.resultDiv.textContent = 'Error: Camera access - ' + err.message;
+            
+            // Try fallback to basic video if specific mode fails
+            if (deviceIdOrMode === 'user' || deviceIdOrMode === 'environment') {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                    this.video.srcObject = stream;
+                    this.currentStream = stream;
+                } catch (fallbackErr) {
+                    console.error('Fallback camera error:', fallbackErr);
+                }
+            }
         }
     }
 
@@ -65,11 +101,9 @@ class VisionApp {
         canvas.height = this.video.videoHeight;
         canvas.getContext('2d').drawImage(this.video, 0, 0);
 
-        // Get references to the elements
         const spinner = document.getElementById('spinner');
         const resultText = document.getElementById('result-text');
 
-        // Show spinner and disable button
         this.captureButton.disabled = true;
         spinner.style.display = 'inline-block';
         resultText.textContent = 'Processing...';
@@ -90,7 +124,6 @@ class VisionApp {
                 console.error('Error:', error);
                 resultText.textContent = 'Error: Could not connect to server';
             } finally {
-                // Always hide spinner and enable button
                 spinner.style.display = 'none';
                 this.captureButton.disabled = false;
             }
@@ -100,9 +133,7 @@ class VisionApp {
     setupEventListeners() {
         this.captureButton.addEventListener('click', () => this.captureImage());
         this.cameraSelect.addEventListener('change', () => {
-            if (this.cameraSelect.value) {
-                this.initializeCamera(this.cameraSelect.value);
-            }
+            this.initializeCamera(this.cameraSelect.value);
         });
     }
 }
