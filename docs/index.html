@@ -13,21 +13,24 @@
     <h1 class="mb-4">🧠 Smart Vision Classifier</h1>
 
     <div class="card shadow p-4">
-      <video id="video" autoplay playsinline class="border rounded mb-4"></video>
+        <div class="position-relative">
+          <video id="video" autoplay playsinline class="border rounded mb-4"></video>
+          <canvas id="canvas" class="border rounded mb-4 position-absolute top-0 start-0" style="display: none;"></canvas>
+        </div>
+        
+        <div class="mb-3">
+          <select id="camera-select" class="form-select">
+            <option value="">Select Camera...</option>
+          </select>
+        </div>
       
-      <div class="mb-3">
-        <select id="camera-select" class="form-select">
-          <option value="">Select Camera...</option>
-        </select>
+        <button id="capture" class="btn btn-primary mb-3">Capture & Predict</button>
+      
+        <div id="result" class="alert alert-secondary d-flex align-items-center justify-content-center" role="alert">
+          <div id="spinner" class="spinner-border me-2" role="status" style="display:none;"></div>
+          <span id="result-text">Awaiting capture...</span>
+        </div>      
       </div>
-
-      <button id="capture" class="btn btn-primary mb-3">Capture & Predict</button>
-
-      <div id="result" class="alert alert-secondary d-flex align-items-center justify-content-center" role="alert">
-        <div id="spinner" class="spinner-border me-2" role="status" style="display:none;"></div>
-        <span id="result-text">Awaiting capture...</span>
-      </div>      
-    </div>
   </div>
 
   <footer class="mt-auto text-center p-3">

@@ -47,11 +47,15 @@ class VisionApp {
         });
     }
     
-    async initializeCamera(deviceIdOrMode = 'environment') {  // Changed default to 'environment'
+    async initializeCamera(deviceIdOrMode = 'environment') {
         // Stop any existing stream
         if (this.currentStream) {
             this.currentStream.getTracks().forEach(track => track.stop());
         }
+        
+        // Make sure video is visible and canvas is hidden
+        this.video.style.display = 'block';
+        document.getElementById('canvas').style.display = 'none';
         
         try {
             const constraints = {
@@ -99,43 +103,60 @@ class VisionApp {
                 await this.getCameraDevices();
             } catch (fallbackErr) {
                 console.error('Fallback camera error:', fallbackErr);
+                this.resultDiv.textContent = 'Error: Could not access any camera';
+                
+                // Ensure UI is in correct state
+                this.video.style.display = 'block';
+                document.getElementById('canvas').style.display = 'none';
             }
         }
     }
 
     async captureImage() {
-        const canvas = document.createElement('canvas');
-        canvas.width = this.video.videoWidth;
-        canvas.height = this.video.videoHeight;
-        canvas.getContext('2d').drawImage(this.video, 0, 0);
-
+        const video = this.video;
+        const canvas = document.getElementById('canvas');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(video, 0, 0);
+    
+        // Show canvas (paused image) and hide video
+        canvas.style.display = 'block';
+        video.style.display = 'none';
+    
         const spinner = document.getElementById('spinner');
         const resultText = document.getElementById('result-text');
-
+    
         this.captureButton.disabled = true;
         spinner.style.display = 'inline-block';
         resultText.textContent = 'Processing...';
-
-        canvas.toBlob(async (blob) => {
+    
+        try {
+            const blob = await new Promise((resolve) => {
+                canvas.toBlob(resolve, 'image/jpeg');
+            });
+    
             const formData = new FormData();
             formData.append('image', blob);
-
-            try {
-                const response = await fetch(`${API_URL}/predict`, {
-                    method: 'POST',
-                    body: formData
-                });
-
-                const data = await response.json();
-                resultText.textContent = `Predicted: ${data.prediction}`;
-            } catch (error) {
-                console.error('Error:', error);
-                resultText.textContent = 'Error: Could not connect to server';
-            } finally {
-                spinner.style.display = 'none';
-                this.captureButton.disabled = false;
-            }
-        }, 'image/jpeg');
+    
+            const response = await fetch(`${API_URL}/predict`, {
+                method: 'POST',
+                body: formData
+            });
+    
+            const data = await response.json();
+            resultText.textContent = `Predicted: ${data.prediction}`;
+        } catch (error) {
+            console.error('Error:', error);
+            resultText.textContent = 'Error: Could not connect to server';
+        } finally {
+            spinner.style.display = 'none';
+            this.captureButton.disabled = false;
+            
+            // Hide canvas and show video again
+            canvas.style.display = 'none';
+            video.style.display = 'block';
+        }
     }
 
     setupEventListeners() {
