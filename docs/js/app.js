@@ -11,9 +11,17 @@ class VisionApp {
     this.currentStream = null;
 
     this.setupEventListeners();
-    // First get a default stream to prompt for permission, then list devices
+    // 1) Prompt for camera permission (default)
+    // 2) List devices, choose rear cam on mobile, then re-open that stream
     this.initializeCamera()
-      .then(() => this.getCameraDevices());
+      .then(() => this.getCameraDevices())
+      .then(() => {
+        // simple mobile check
+        const isMobile = /Mobi|Android/i.test(navigator.userAgent);
+        const defaultCam = isMobile ? 'environment' : 'default';
+        this.cameraSelect.value = defaultCam;
+        return this.initializeCamera(defaultCam);
+      });
   }
 
   async getCameraDevices() {
@@ -28,14 +36,10 @@ class VisionApp {
   }
 
   populateCameraSelect(videoInputs) {
-    // Clear old options
     this.cameraSelect.innerHTML = '';
-    // Default / system choice
     this.cameraSelect.add(new Option('Default camera', 'default'));
-    // Facing-mode presets (optional)
     this.cameraSelect.add(new Option('Front (selfie)', 'user'));
     this.cameraSelect.add(new Option('Rear', 'environment'));
-    // Then list each actual device
     videoInputs.forEach((device, idx) => {
       const label = device.label || `Camera ${idx + 1}`;
       this.cameraSelect.add(new Option(label, device.deviceId));
@@ -52,6 +56,7 @@ class VisionApp {
     // Reset UI
     this.video.classList.add('show');
     this.canvas.classList.remove('show');
+    this.captureButton.style.display = 'inline-block';
     this.retakeButton.style.display = 'none';
 
     // Build constraints
@@ -65,7 +70,6 @@ class VisionApp {
         facingMode: { exact: selection }
       };
     } else {
-      // must be a deviceId
       videoConstraint = {
         width: { ideal: 1280 },
         height: { ideal: 720 },
@@ -79,7 +83,6 @@ class VisionApp {
       this.currentStream = stream;
     } catch (err) {
       console.warn('Requested constraints failed, falling back to default:', err);
-      // fallback to completely default
       try {
         const fallback = await navigator.mediaDevices.getUserMedia({ video: true });
         this.video.srcObject = fallback;
