@@ -17,3 +17,9 @@
 #result {
     font-size: 1.25em;
 }
+
+/* docs/css/style.css */
+#spinner {
+    width: 1.5rem;
+    height: 1.5rem;
+}

@@ -24,57 +24,43 @@ class VisionApp {
 
 
     async captureImage() {
-        this.resultDiv.textContent = 'Processing...';
-        
-        try {
-            const canvas = document.createElement('canvas');
-            canvas.width = this.video.videoWidth;
-            canvas.height = this.video.videoHeight;
-            canvas.getContext('2d').drawImage(this.video, 0, 0);
+        const canvas = document.createElement('canvas');
+        canvas.width = this.video.videoWidth;
+        canvas.height = this.video.videoHeight;
+        canvas.getContext('2d').drawImage(this.video, 0, 0);
     
-            // img size reduction
-            const scaledCanvas = document.createElement('canvas');
-            scaledCanvas.width = 224;  // matches model input size
-            scaledCanvas.height = 224;
-            scaledCanvas.getContext('2d').drawImage(canvas, 0, 0, 224, 224);
+        // Get references to the elements
+        const spinner = document.getElementById('spinner');
+        const resultText = document.getElementById('result-text');
     
-            scaledCanvas.toBlob(async (blob) => {
-                const formData = new FormData();
-                formData.append('image', blob, 'webcam.jpg');
+        // Show spinner and disable button
+        this.captureButton.disabled = true;
+        spinner.style.display = 'inline-block';
+        resultText.textContent = 'Processing...';
     
-                try {
-                    // timeout
-                    const controller = new AbortController();
-                    const timeoutId = setTimeout(() => controller.abort(), 25000); // 25 second timeout
+        canvas.toBlob(async (blob) => {
+            const formData = new FormData();
+            formData.append('image', blob);
     
-                    const response = await fetch('https://i6dxtr.pythonanywhere.com/predict', {
-                        method: 'POST',
-                        body: formData,
-                        signal: controller.signal
-                    });
-                    
-                    clearTimeout(timeoutId);
+            try {
+                const response = await fetch(`${API_URL}/predict`, {
+                    method: 'POST',
+                    body: formData
+                });
     
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-                    
-                    const data = await response.json();
-                    this.resultDiv.textContent = `Predicted: ${data.prediction}`;
-                } catch (error) {
-                    console.error('Error:', error);
-                    if (error.name === 'AbortError') {
-                        this.resultDiv.textContent = 'Request timed out';
-                    } else {
-                        this.resultDiv.textContent = `Error: ${error.message}`;
-                    }
-                }
-            }, 'image/jpeg', 0.8);
-        } catch (error) {
-            console.error('Capture error:', error);
-            this.resultDiv.textContent = 'Error capturing image';
-        }
+                const data = await response.json();
+                resultText.textContent = `Predicted: ${data.prediction}`;
+            } catch (error) {
+                console.error('Error:', error);
+                resultText.textContent = 'Error: Could not connect to server';
+            } finally {
+                // Always hide spinner and enable button
+                spinner.style.display = 'none';
+                this.captureButton.disabled = false;
+            }
+        }, 'image/jpeg');
     }
+    
 
     setupEventListeners() {
         this.captureButton.addEventListener('click', () => this.captureImage());

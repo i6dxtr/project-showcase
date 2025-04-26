@@ -22,9 +22,10 @@
 
       <button id="capture" class="btn btn-primary mb-3">Capture & Predict</button>
 
-      <div id="result" class="alert alert-secondary" role="alert">
-        Awaiting capture...
-      </div>
+      <div id="result" class="alert alert-secondary d-flex align-items-center justify-content-center" role="alert">
+        <div id="spinner" class="spinner-border me-2" role="status" style="display:none;"></div>
+        <span id="result-text">Awaiting capture...</span>
+      </div>      
     </div>
   </div>
 
