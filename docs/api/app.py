@@ -1,95 +1,63 @@
 # docs/api/app.py
-# these are necessary imports for the backend too, please indicate if any have been added
-from flask import Flask, request, jsonify  # needs flask -- done
-from flask_cors import CORS               # needs flask-cors -- done
-import tensorflow as tf                   # needs tensorflow -- done
-import cv2                               # needs opencv-python-headless -- done
-import numpy as np                       # needs numpy -- done
-import os
-import sys
-import json
+
+from flask import Flask, request, jsonify
+from flask_cors import CORS
+import tensorflow as tf
+import cv2, numpy as np, os, sys, json
 
 app = Flask(__name__)
-CORS(app, origins=['https://i6dxtr.github.io']) # do not change this
-global model, index_to_class
+CORS(app, origins=['https://i6dxtr.github.io'])
 
-def load_model_and_mapping():
-    """Load model and mapping once at startup"""
+model = None
+index_to_class = None
+
+@app.before_first_request
+def load_and_warm_model():
     global model, index_to_class
-    
-    print("Loading model and mapping...")
-    MODEL_PATH = '/home/i6dxtr/docs/api/model/my_product_classifier_BETTER.h5' # DO NOT CHANGE THIS PATH
+    MODEL_PATH = '/home/i6dxtr/docs/api/model/my_product_classifier_BETTER.h5'
     MAPPING_PATH = os.path.join(os.path.dirname(__file__), '..', 'lib_mdl', 'class_mapping.json')
-    
-    # Load model
+
+    print("⏳ Loading model…", file=sys.stderr)
     model = tf.keras.models.load_model(MODEL_PATH)
-    
-    # Load class mapping
+
+    print("⏳ Loading class mapping…", file=sys.stderr)
     with open(MAPPING_PATH, 'r') as f:
         index_to_class = json.load(f)
-    
-    print("Model and mapping loaded successfully!")
 
-# Load model and mapping at startup
-load_model_and_mapping()
+    # **Warm-up** so that the first real request isn’t building the TF graph
+    dummy = np.zeros((1, 224, 224, 3), dtype=np.float32)
+    _ = model.predict(dummy, verbose=0)
+
+    print("✅ Model loaded and warmed up!", file=sys.stderr)
 
 def predict_image(image_array):
-    """Predict using same preprocessing as frontend"""
-    global model, index_to_class
-    
-    # Convert to RGB
+    # same as before…
     img = cv2.cvtColor(image_array, cv2.COLOR_BGR2RGB)
-    # Resize to 224x224
-    img_resized = cv2.resize(img, (224, 224))
-    # Scale pixel values
-    img_array = np.expand_dims(img_resized / 255.0, axis=0)
-
-    # Predict using global model
-    predictions = model.predict(img_array)
-    predicted_class_index = str(np.argmax(predictions, axis=1)[0])
-    predicted_label = index_to_class[predicted_class_index]
-
-    return predicted_label
+    img = cv2.resize(img, (224, 224))
+    arr = np.expand_dims(img / 255.0, axis=0)
+    preds = model.predict(arr)
+    idx  = str(np.argmax(preds, axis=1)[0])
+    return index_to_class[idx]
 
 @app.route('/predict', methods=['POST'])
 def predict():
-    print("Predict endpoint called", file=sys.stderr)
-    print(f"Files in request: {request.files}", file=sys.stderr)
-    print(f"Content Type: {request.content_type}", file=sys.stderr)
-    print(f"Headers: {request.headers}", file=sys.stderr)
-    
     try:
-                # Get image from request
         file = request.files['image']
-        # Convert to numpy array
-        nparr = np.frombuffer(file.read(), np.uint8)
-        img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-        
+        buf  = np.frombuffer(file.read(), np.uint8)
+        img  = cv2.imdecode(buf, cv2.IMREAD_COLOR)
         if img is None:
-            return jsonify({'error': 'Invalid image'}), 400
+            return jsonify(error="Invalid image"), 400
 
-        # Get prediction using loaded model
-        prediction = predict_image(img)
-        
-        return jsonify({
-            'success': True,
-            'prediction': prediction
-        })
+        label = predict_image(img)
+        return jsonify(success=True, prediction=label)
 
     except Exception as e:
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
+        return jsonify(success=False, error=str(e)), 500
 
 @app.route('/')
 def index():
-    return jsonify({
-        'status': 'API is running',
-        'endpoints': {
-            'predict': '/predict (POST) - Send an image for classification'
-        }
-    })
+    return jsonify(status='API is running', endpoints={'predict':'/predict (POST)'})
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    # For production you’ll run under Gunicorn or uWSGI, *not* flask’s dev server.
+    app.run(host='0.0.0.0', port=5000)
