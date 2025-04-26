@@ -10,7 +10,7 @@ class VisionApp {
         this.currentStream = null;
         
         this.setupEventListeners();
-        this.initializeCamera(); // Start with default camera first
+        this.initializeCamera(); // Start with rear camera first
         this.getCameraDevices();
     }
 
@@ -35,9 +35,9 @@ class VisionApp {
     populateCameraSelect() {
         this.cameraSelect.innerHTML = '';
         
-        // Always add generic options first
-        this.cameraSelect.add(new Option('Front Camera (Default)', 'user'));
-        this.cameraSelect.add(new Option('Rear Camera', 'environment'));
+        // Changed order and labels to prioritize rear camera
+        this.cameraSelect.add(new Option('Rear Camera (Default)', 'environment'));
+        this.cameraSelect.add(new Option('Front Camera', 'user'));
         
         // Add specific devices if available
         this.availableDevices.forEach((device, index) => {
@@ -47,7 +47,7 @@ class VisionApp {
         });
     }
     
-    async initializeCamera(deviceIdOrMode = 'user') {
+    async initializeCamera(deviceIdOrMode = 'environment') {  // Changed default to 'environment'
         // Stop any existing stream
         if (this.currentStream) {
             this.currentStream.getTracks().forEach(track => track.stop());
