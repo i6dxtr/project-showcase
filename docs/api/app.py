@@ -49,6 +49,7 @@ def predict_image(image_array):
 
 @app.route('/predict', methods=['POST'])
 def predict():
+    print("🔍 /predict called", file=sys.stderr)
     try:
         file = request.files.get('image')
         if not file:
