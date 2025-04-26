@@ -7,6 +7,7 @@ import cv2                               # needs opencv-python-headless -- done
 import numpy as np                       # needs numpy -- done
 import os
 import sys
+import json
 
 app = Flask(__name__)
 CORS(app, origins=['https://i6dxtr.github.io']) # do not change this
@@ -14,12 +15,16 @@ CORS(app, origins=['https://i6dxtr.github.io']) # do not change this
 # model now loads once, globally
 print("Loading model...", file=sys.stderr)
 MODEL_PATH = '/home/i6dxtr/docs/api/model/my_product_classifier_BETTER.h5' # DO NOT CHANGE THIS PATH
+MAPPING_PATH = os.path.join(os.path.dirname(__file__), '..', 'lib_mdl', 'class_mapping.json')
 model = tf.keras.models.load_model(MODEL_PATH)
 
+# Load class mapping
+with open(MAPPING_PATH, 'r') as f:
+    index_to_class = json.load(f)
+
 def predict_image(image_array):
-    """
-    Predict the class of an image using the loaded model.
-    """
+    """Predict using same preprocessing as frontend"""
+    # Convert to RGB
     img = cv2.cvtColor(image_array, cv2.COLOR_BGR2RGB)
     # Resize to 224x224
     img_resized = cv2.resize(img, (224, 224))
@@ -29,9 +34,9 @@ def predict_image(image_array):
     # Predict
     predictions = model.predict(img_array)
     predicted_class_index = np.argmax(predictions, axis=1)[0]
+    # Convert index to string for json serialization
+    predicted_class_index = str(predicted_class_index)
     predicted_label = index_to_class[predicted_class_index]
-
-    return predicted_label
 
 @app.route('/predict', methods=['POST'])
 def predict():
