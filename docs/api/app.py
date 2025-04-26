@@ -15,10 +15,23 @@ CORS(app, origins=['https://i6dxtr.github.io']) # do not change this
 print("Loading model...", file=sys.stderr)
 MODEL_PATH = '/home/i6dxtr/docs/api/model/my_product_classifier_BETTER.h5' # DO NOT CHANGE THIS PATH
 model = tf.keras.models.load_model(MODEL_PATH)
-# dummy prediction
-warmup_data = np.zeros((1, 224, 224, 3))
-_ = model.predict(warmup_data)
-print("Model loaded and warmed up", file=sys.stderr)
+
+def predict_image(image_array):
+    """
+    Predict the class of an image using the loaded model.
+    """
+    img = cv2.cvtColor(image_array, cv2.COLOR_BGR2RGB)
+    # Resize to 224x224
+    img_resized = cv2.resize(img, (224, 224))
+    # Scale pixel values
+    img_array = np.expand_dims(img_resized / 255.0, axis=0)
+
+    # Predict
+    predictions = model.predict(img_array)
+    predicted_class_index = np.argmax(predictions, axis=1)[0]
+    predicted_label = index_to_class[predicted_class_index]
+
+    return predicted_label
 
 @app.route('/predict', methods=['POST'])
 def predict():

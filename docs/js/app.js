@@ -80,30 +80,6 @@ class VisionApp {
         this.captureButton.addEventListener('click', () => this.captureImage());
     }
 
-    async captureImage() {
-        const canvas = document.createElement('canvas');
-        canvas.width = this.video.videoWidth;
-        canvas.height = this.video.videoHeight;
-        canvas.getContext('2d').drawImage(this.video, 0, 0);
-
-        canvas.toBlob(async (blob) => {
-            const formData = new FormData();  // proper scope
-            formData.append('image', blob);
-
-            try {
-                const response = await fetch(`${API_URL}/predict`, {
-                    method: 'POST',
-                    body: formData
-                });
-                
-                const data = await response.json();
-                this.resultDiv.textContent = `Predicted: ${data.prediction}`;
-            } catch (error) {
-                console.error('Error:', error);
-                this.resultDiv.textContent = 'Error: Could not connect to server';
-            }
-        }, 'image/jpeg');
-    }
 }
 
 window.addEventListener('load', () => {

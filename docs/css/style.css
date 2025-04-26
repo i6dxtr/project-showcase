@@ -1,16 +1,19 @@
 /* docs/css/style.css */
 .container {
+    max-width: 720px;
+    margin: auto;
     text-align: center;
-    padding: 20px;
 }
 
 #video {
-    width: 640px;
-    height: 480px;
-    margin-bottom: 20px;
+    width: 100%;
+    height: auto;
+    max-height: 480px;
+    background-color: black;
+    border: 2px solid #ddd;
+    border-radius: 8px;
 }
 
 #result {
-    margin-top: 20px;
-    font-size: 1.2em;
+    font-size: 1.25em;
 }
