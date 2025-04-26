@@ -11,19 +11,32 @@ import json
 
 app = Flask(__name__)
 CORS(app, origins=['https://i6dxtr.github.io']) # do not change this
+global model, index_to_class
 
-# model now loads once, globally
-print("Loading model...", file=sys.stderr)
-MODEL_PATH = '/home/i6dxtr/docs/api/model/my_product_classifier_BETTER.h5' # DO NOT CHANGE THIS PATH
-MAPPING_PATH = os.path.join(os.path.dirname(__file__), '..', 'lib_mdl', 'class_mapping.json')
-model = tf.keras.models.load_model(MODEL_PATH)
+def load_model_and_mapping():
+    """Load model and mapping once at startup"""
+    global model, index_to_class
+    
+    print("Loading model and mapping...")
+    MODEL_PATH = '/home/i6dxtr/docs/api/model/my_product_classifier_BETTER.h5' # DO NOT CHANGE THIS PATH
+    MAPPING_PATH = os.path.join(os.path.dirname(__file__), '..', 'lib_mdl', 'class_mapping.json')
+    
+    # Load model
+    model = tf.keras.models.load_model(MODEL_PATH)
+    
+    # Load class mapping
+    with open(MAPPING_PATH, 'r') as f:
+        index_to_class = json.load(f)
+    
+    print("Model and mapping loaded successfully!")
 
-# Load class mapping
-with open(MAPPING_PATH, 'r') as f:
-    index_to_class = json.load(f)
+# Load model and mapping at startup
+load_model_and_mapping()
 
 def predict_image(image_array):
     """Predict using same preprocessing as frontend"""
+    global model, index_to_class
+    
     # Convert to RGB
     img = cv2.cvtColor(image_array, cv2.COLOR_BGR2RGB)
     # Resize to 224x224
@@ -31,12 +44,12 @@ def predict_image(image_array):
     # Scale pixel values
     img_array = np.expand_dims(img_resized / 255.0, axis=0)
 
-    # Predict
+    # Predict using global model
     predictions = model.predict(img_array)
-    predicted_class_index = np.argmax(predictions, axis=1)[0]
-    # Convert index to string for json serialization
-    predicted_class_index = str(predicted_class_index)
+    predicted_class_index = str(np.argmax(predictions, axis=1)[0])
     predicted_label = index_to_class[predicted_class_index]
+
+    return predicted_label
 
 @app.route('/predict', methods=['POST'])
 def predict():
@@ -46,49 +59,26 @@ def predict():
     print(f"Headers: {request.headers}", file=sys.stderr)
     
     try:
-        if 'image' not in request.files:
-            print("No image in request.files", file=sys.stderr)
-            return jsonify({'error': 'No image provided'}), 400
-            
-        # file = request.files['image']
-        # print(f"Received file: {file.filename}", file=sys.stderr)
-        
-        # if file.filename == '':
-        #     return jsonify({'error': 'No selected file'}), 400
-
-        # file = request.files['image']
-        # nparr = np.frombuffer(file.read(), np.uint8)
-        # img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-        
-        # img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        # img_resized = cv2.resize(img, (224, 224))
-        # img_array = np.expand_dims(img_resized / 255.0, axis=0)
-
-        # predictions = model.predict(img_array)
-        # predicted_class_index = np.argmax(predictions, axis=1)[0]
-        # # predicted_label = index_to_class[predicted_class_index] # who knows
-
+                # Get image from request
         file = request.files['image']
-        # one shot
-        file_bytes = file.read()
-        nparr = np.frombuffer(file_bytes, np.uint8)
+        # Convert to numpy array
+        nparr = np.frombuffer(file.read(), np.uint8)
         img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
         
-        # batch process image transformations
-        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        img_resized = cv2.resize(img, (224, 224))
-        img_array = np.expand_dims(img_resized / 255.0, axis=0)
+        if img is None:
+            return jsonify({'error': 'Invalid image'}), 400
 
-        # t/o for predictions
-        predictions = model.predict(img_array, batch_size=1)
-        predicted_class_index = np.argmax(predictions, axis=1)[0]
+        # Get prediction using loaded model
+        prediction = predict_image(img)
         
         return jsonify({
-            'prediction': int(predicted_class_index) # these are just numbers for now
+            'success': True,
+            'prediction': prediction
         })
-    
+
     except Exception as e:
         return jsonify({
+            'success': False,
             'error': str(e)
         }), 500
 
