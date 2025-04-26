@@ -29,12 +29,12 @@ class VisionApp {
         canvas.height = this.video.videoHeight;
         canvas.getContext('2d').drawImage(this.video, 0, 0);
     
-        const captureButton = document.getElementById('capture');
+        // Get references to the elements
         const spinner = document.getElementById('spinner');
         const resultText = document.getElementById('result-text');
     
         // Show spinner and disable button
-        captureButton.disabled = true;
+        this.captureButton.disabled = true;
         spinner.style.display = 'inline-block';
         resultText.textContent = 'Processing...';
     
@@ -56,7 +56,7 @@ class VisionApp {
             } finally {
                 // Always hide spinner and enable button
                 spinner.style.display = 'none';
-                captureButton.disabled = false;
+                this.captureButton.disabled = false;
             }
         }, 'image/jpeg');
     }
