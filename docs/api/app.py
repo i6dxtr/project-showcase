@@ -15,8 +15,8 @@ CORS(app, origins=['https://i6dxtr.github.io'])
 # —— Module‐level startup (runs at import time) ——
 
 # Paths
-MODEL_PATH   = '/home/i6dxtr/docs/api/model/my_product_classifier_BETTER.h5'
-MAPPING_PATH = os.path.join(os.path.dirname(__file__), '..', 'lib_mdl', 'class_mapping.json')
+MODEL_PATH = '/home/i6dxtr/docs/api/model/my_product_classifier_BETTER.h5' # DO NOT CHANGE THIS PATH
+MAPPING_PATH = '/home/i6dxtr/lib_mdl/class_indices.json'  # DO NOT CHANGE THIS PATH
 
 # 1. Load the Keras .h5 model
 model = tf.keras.models.load_model(MODEL_PATH)
