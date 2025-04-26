@@ -115,15 +115,22 @@ class VisionApp {
     async captureImage() {
         const video = this.video;
         const canvas = document.getElementById('canvas');
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
+        
+        // Match canvas dimensions to video display dimensions (not necessarily video intrinsic dimensions)
+        const displayWidth = video.clientWidth;
+        const displayHeight = video.clientHeight;
+        canvas.width = displayWidth;
+        canvas.height = displayHeight;
+        
+        // Draw the video frame to canvas (scaled to fit)
         const ctx = canvas.getContext('2d');
-        ctx.drawImage(video, 0, 0);
+        ctx.drawImage(video, 0, 0, displayWidth, displayHeight);
     
         // Show canvas (paused image) and hide video
         canvas.style.display = 'block';
         video.style.display = 'none';
     
+        // Rest of your capture logic...
         const spinner = document.getElementById('spinner');
         const resultText = document.getElementById('result-text');
     
@@ -133,7 +140,7 @@ class VisionApp {
     
         try {
             const blob = await new Promise((resolve) => {
-                canvas.toBlob(resolve, 'image/jpeg');
+                canvas.toBlob(resolve, 'image/jpeg', 0.8); // 0.8 quality
             });
     
             const formData = new FormData();
