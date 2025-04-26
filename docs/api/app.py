@@ -42,22 +42,35 @@ def predict_image(image_array):
 
 @app.route('/predict', methods=['POST'])
 def predict():
-    try:
-        file = request.files.get('image')
-        if not file:
-            return jsonify(success=False, error="No image file provided"), 400
+    print("🔍 /predict called", file=sys.stderr)
 
-        data = np.frombuffer(file.read(), np.uint8)
-        img  = cv2.imdecode(data, cv2.IMREAD_COLOR)
-        if img is None:
-            return jsonify(success=False, error="Invalid image data"), 400
+    # before you grab the file
+    print("1️⃣ about to fetch file object", file=sys.stderr)
+    file = request.files.get('image')
+    print("   got file:", file, file=sys.stderr)
 
-        label = predict_image(img)
-        return jsonify(success=True, prediction=label)
+    # before reading bytes
+    print("2️⃣ about to read bytes", file=sys.stderr)
+    data = file.read()
+    print(f"   read {len(data)} bytes", file=sys.stderr)
 
-    except Exception as e:
-        print(f"❌ Error in /predict: {e}", file=sys.stderr)
-        return jsonify(success=False, error=str(e)), 500
+    # before converting to array
+    print("3️⃣ about to np.frombuffer", file=sys.stderr)
+    arr = np.frombuffer(data, np.uint8)
+    print("   array shape:", arr.shape, file=sys.stderr)
+
+    # before CV decode
+    print("4️⃣ about to cv2.imdecode", file=sys.stderr)
+    img = cv2.imdecode(arr, cv2.IMREAD_COLOR)
+    print("   decoded image:", None if img is None else img.shape, file=sys.stderr)
+
+    # before running the model
+    print("5️⃣ about to run model.predict", file=sys.stderr)
+    label = predict_image(img)
+    print("   prediction result:", label, file=sys.stderr)
+
+    return jsonify(success=True, prediction=label)
+
 
 @app.route('/')
 def index():
