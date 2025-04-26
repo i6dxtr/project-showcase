@@ -19,7 +19,7 @@ def load_model_and_mapping():
     
     print("Loading model and mapping...")
     MODEL_PATH = '/home/i6dxtr/docs/api/model/my_product_classifier_BETTER.h5' # DO NOT CHANGE THIS PATH
-    MAPPING_PATH = os.path.join(os.path.dirname(__file__), '..', 'lib_mdl', 'class_mapping.json')
+    MAPPING_PATH = '/home/i6dxtr/lib_mdl/class_mapping.json' 
     
     # Load model
     model = tf.keras.models.load_model(MODEL_PATH)
