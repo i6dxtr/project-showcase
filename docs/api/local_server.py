@@ -1,8 +1,8 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, make_response
+from flask_cors import CORS
 import cv2
 import numpy as np
 from tensorflow.keras.models import load_model
-from flask_cors import CORS 
 import json
 import sys
 
@@ -11,18 +11,9 @@ CORS(app)
 
 @app.route('/', methods=['GET'])
 def index():
-    return jsonify({'status': 'Local server is running'})
-
-
-
-# Load the model and class mapping
-try:
-    model = load_model('../../lib_mdl/my_product_classifier_BETTER.h5')
-    with open('../../lib_mdl/class_mapping.json', 'r') as f:
-        index_to_class = json.load(f)
-except Exception as e:
-    print(f"Error loading model or class mapping: {e}", file=sys.stderr)
-    sys.exit(1)
+    response = make_response(jsonify({'status': 'Local server is running'}))
+    response.headers['Content-Type'] = 'application/json'
+    return response
 
 @app.route('/predict', methods=['POST'])
 def predict():
@@ -45,7 +36,9 @@ def predict():
         idx = str(np.argmax(preds, axis=1)[0])
         label = index_to_class.get(idx, "unknown")
 
-        return jsonify(success=True, prediction=label)
+        response = make_response(jsonify(success=True, prediction=label))
+        response.headers['Content-Type'] = 'application/json'
+        return response
 
     except Exception as e:
         print(f"Error in prediction: {e}", file=sys.stderr)
@@ -53,4 +46,5 @@ def predict():
 
 if __name__ == '__main__':
     print("Starting local prediction server...")
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    # Change to port 8080
+    app.run(host='0.0.0.0', port=8080, debug=True)
