@@ -44,5 +44,5 @@ def predict():
         return jsonify(success=False, error=str(e)), 500
 
 if __name__ == '__main__':
-    print("🚀 Starting local prediction server...")
+    print("Starting local prediction server...")
     app.run(port=5000, debug=True)
