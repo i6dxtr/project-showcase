@@ -2,10 +2,18 @@ from flask import Flask, request, jsonify
 import cv2
 import numpy as np
 from tensorflow.keras.models import load_model
+from flask_cors import CORS 
 import json
 import sys
 
 app = Flask(__name__)
+CORS(app)
+
+@app.route('/', methods=['GET'])
+def index():
+    return jsonify({'status': 'Local server is running'})
+
+
 
 # Load the model and class mapping
 try:
@@ -45,4 +53,4 @@ def predict():
 
 if __name__ == '__main__':
     print("Starting local prediction server...")
-    app.run(port=5000, debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=True)
