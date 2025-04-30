@@ -15,24 +15,33 @@ def index():
 
 @app.route('/predict', methods=['POST'])
 def predict():
-    print("🔍 /predict called", file=sys.stderr)
+    print("/predict called", file=sys.stderr)
     try:
-        # Forward the request to local tunnel
+        # Test the tunnel connection first
+        print("Testing tunnel connection...", file=sys.stderr)
+        test_response = requests.get('http://localhost:8000/')
+        print(f"Tunnel test response: {test_response.text}", file=sys.stderr)
+        
+        # Forward the actual request
+        print("Forwarding prediction request...", file=sys.stderr)
         response = requests.post(
-            'http://localhost:8000/predict',  # This forwards to your local machine through SSH tunnel
+            'http://localhost:8000/predict',
             files={'image': request.files['image']},
             timeout=10
         )
+        print(f"Got response: {response.text}", file=sys.stderr)
+        
         return response.json()
-    except requests.exceptions.ConnectionError:
-        print("Could not connect to local prediction server", file=sys.stderr)
+    except requests.exceptions.ConnectionError as ce:
+        print(f"Connection error details: {str(ce)}", file=sys.stderr)
         return jsonify({
             'success': False,
-            'error': 'Could not connect to local prediction server'
+            'error': f'Tunnel connection error: {str(ce)}'
         }), 503
     except Exception as e:
-        print(f"Error in /predict: {e}", file=sys.stderr)
+        print(f"Error type: {type(e)}", file=sys.stderr)
+        print(f"Error details: {str(e)}", file=sys.stderr)
         return jsonify({
             'success': False,
-            'error': str(e)
+            'error': f'{type(e).__name__}: {str(e)}'
         }), 500
