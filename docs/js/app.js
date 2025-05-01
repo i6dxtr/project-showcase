@@ -16,20 +16,20 @@ class VisionApp {
     this.currentStream  = null;
 
     this.product_images = {
-      'product-a': '/docs/stock/pb.png',
-      'product-b': '/docs/stock/cookies.png',
-      'product-c': '/docs/stock/salt.png', // Fixed typo in .pngg
-      'product-d': '/docs/stock/cracker.png',
-      // Add more mappings as needed
-    };
-
-    // Product mapping - Define it here so it's available throughout the class
-    this.product_mapping = {
       'product-a': './stock/pb.png',
       'product-b': './stock/cookies.png',
       'product-c': './stock/salt.png',
       'product-d': './stock/cracker.png',
-  };
+    };
+
+    // Product mapping - Define it here so it's available throughout the class
+    this.product_mapping = {
+      'product-a': 'Kroger Creamy Peanut Butter',
+      'product-b': 'Great Value Twist and Shout Cookies',
+      'product-c': 'Morton Coarse Kosher Salt',
+      'product-d': 'Kroger Extra Virgin Olive Oil',
+      // Add more mappings as needed
+    };
 
     // Add Spanish translations for product names
     this.product_translations = {
