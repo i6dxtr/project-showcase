@@ -64,7 +64,7 @@ def predict():
 
         # Send the file to the downstream service
         response = session.post(
-            'http://localhost:8000/predict',  # Ensure the model server is running on this endpoint
+            'http://localhost:8080/predict',  # Ensure the model server is running on this endpoint
             files=files,
             timeout=30
         )
