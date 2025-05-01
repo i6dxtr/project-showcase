@@ -65,22 +65,31 @@
   <script>
     const API_URL = "https://ba61-75-187-72-180.ngrok-free.app";
 
-    // Product name mapping
-    const product_mapping = {
-      'product-a': 'Kroger Creamy Peanut Butter',
-      'product-b': 'Great Value Twist and Shout Cookies',
-      'product-c': 'Morton Coarse Kosher Salt',
-      'product-d': 'Kroger Extra Virgin Olive Oil'
-      // Add more mappings as needed
-    };
-
     document.addEventListener('DOMContentLoaded', () => {
-      // Get stored values
-      const storedName = localStorage.getItem('productName');
-      const productName = storedName || 'Unknown Product';
+      const storedName = localStorage.getItem('productName'); // Ex: "product-b"
+      const savedImg = localStorage.getItem('capturedImage');
       let currentLanguage = localStorage.getItem('language') || 'en';
 
-      // Update all translations
+      const product_mapping = {
+        'product-a': 'Kroger Creamy Peanut Butter',
+        'product-b': 'Great Value Twist and Shout Cookies',
+        'product-c': 'Morton Coarse Kosher Salt',
+        'product-d': 'Kroger Extra Virgin Olive Oil',
+        // Add more as needed
+      };
+
+      // Map stored product id to nice name
+      const displayName = storedName && product_mapping[storedName.toLowerCase()]
+                        ? product_mapping[storedName.toLowerCase()]
+                        : (storedName || 'Unknown Product');
+
+      document.getElementById('product-name').textContent = `Product: ${displayName}`;
+
+      if (savedImg) {
+        document.getElementById('captured-image').src = savedImg;
+      }
+
+      // Language toggle
       const updateLanguage = (lang) => {
         document.querySelectorAll('[data-lang-en]').forEach(el => {
           el.textContent = lang === 'es' 
@@ -90,26 +99,14 @@
         localStorage.setItem('language', lang);
       };
 
-      // Initialize language
       updateLanguage(currentLanguage);
 
-      // Set product name using mapped value if available
-      const displayName = product_mapping[productName] || productName;
-      document.getElementById('product-name').textContent = `Product: ${displayName}`;
-
-      // Set stored image if available
-      const savedImg = localStorage.getItem('capturedImage');
-      if (savedImg) {
-        document.getElementById('captured-image').src = savedImg;
-      }
-
-      // Language toggle
       document.getElementById('language-toggle').addEventListener('click', () => {
         currentLanguage = currentLanguage === 'en' ? 'es' : 'en';
         updateLanguage(currentLanguage);
       });
 
-      // Query helpers
+      // Query buttons
       const queryResult = document.getElementById('query-result');
 
       const fetchQuery = async (queryType) => {
@@ -121,7 +118,7 @@
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              product_name: productName, // Using original product name for API calls
+              product_name: storedName,  // Send raw ID to server
               query_type: queryType,
               language: currentLanguage
             })
@@ -133,9 +130,7 @@
               <p>${data.details}</p>
               <audio controls>
                 <source src="${data.audio_url}" type="audio/mpeg">
-                ${currentLanguage === 'es' 
-                  ? 'Su navegador no soporta el elemento de audio.'
-                  : 'Your browser does not support the audio element.'}
+                ${currentLanguage === 'es' ? 'Su navegador no soporta el elemento de audio.' : 'Your browser does not support the audio element.'}
               </audio>`;
           } else {
             queryResult.textContent = currentLanguage === 'es'
@@ -150,7 +145,6 @@
         }
       };
 
-      // Event listeners
       document.getElementById('nutrition-btn').addEventListener('click', () => fetchQuery('nutrition'));
       document.getElementById('allergen-btn').addEventListener('click', () => fetchQuery('allergen'));
       document.getElementById('price-btn').addEventListener('click', () => fetchQuery('price'));
