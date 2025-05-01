@@ -89,9 +89,6 @@ def predict():
             'success': False,
             'error': str(e)
         }), 500
-    finally:
-        duration = end_time - start_time
-        print(f"Processing completed in {duration:.2f} seconds.", file=sys.stderr)
 
 @app.route('/query', methods=['POST'])
 def query():
