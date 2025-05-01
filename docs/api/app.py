@@ -9,6 +9,8 @@ import sqlite3
 from googletrans import Translator
 import os
 import re
+import time
+import uuid
 
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
@@ -352,15 +354,19 @@ def query():
         # Use the translated text for detail_text if in Spanish mode
         detail_text = translated_text
 
-        # Generate TTS audio using gTTS instead of pyttsx3
+        # Generate TTS audio using gTTS 
         try:
             # Create static directory if it doesn't exist
             os.makedirs('static', exist_ok=True)
             
-            # Generate unique filename
+            # Generate unique filename using UUID and timestamp to prevent caching issues
             safe_product_name = normalized_product.replace(' ', '_').replace('-', '_')
-            filename = f"{safe_product_name}_{query_type}_{language}.mp3"  # Note: gTTS creates mp3 files, not wav
+            unique_id = str(uuid.uuid4())[:8]
+            timestamp = int(time.time())
+            filename = f"{safe_product_name}_{query_type}_{language}_{unique_id}_{timestamp}.mp3"
             audio_path = os.path.join('static', filename)
+            
+            print(f"Generating audio file with unique name: {filename}", file=sys.stderr)
             
             # Create gTTS object with the translated text
             tts = gTTS(text=detail_text, lang=language, slow=False)
@@ -375,11 +381,12 @@ def query():
             else:
                 print(f"Warning: Audio file was not created", file=sys.stderr)
 
-            # Return both the text and audio URL
+            # Return both the text and audio URL with cache-busting parameter
+            audio_url = f"/static/{filename}"
             return jsonify({
                 'success': True,
                 'details': detail_text,
-                'audio_url': f"/static/{filename}",
+                'audio_url': audio_url,
                 'product_name': normalized_product,
                 'language': language
             })
@@ -390,7 +397,7 @@ def query():
             return jsonify({
                 'success': True,
                 'details': detail_text,
-                'error': "Audio generation failed",
+                'error': f"Audio generation failed: {str(e)}",
                 'product_name': normalized_product,
                 'language': language
             })
@@ -404,14 +411,18 @@ def query():
 def test_db():
     return jsonify({"message": "Check server logs for database test results"})
 
-# Add route to serve static files
+# Add route to serve static files with proper cache control
 @app.route('/static/<path:filename>')
 def serve_static(filename):
-    return send_from_directory('static', filename)
+    response = send_from_directory('static', filename)
+    # Set cache control headers to prevent caching
+    response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    return response
 
 if __name__ == '__main__':
     # Create static directory if it doesn't exist
-    # test_db_connection()  # Test DB before starting server
     if not os.path.exists('static'):
         os.makedirs('static')
     app.run(host='0.0.0.0', port=5000, debug=True)
