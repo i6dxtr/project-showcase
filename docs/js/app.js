@@ -204,28 +204,26 @@ class VisionApp {
 window.addEventListener('load', () => new VisionApp());
 
 document.addEventListener('DOMContentLoaded', () => {
+  applyStoredLanguage();
+  
   const languageToggle = document.getElementById('language-toggle');
+  if (languageToggle) {
+    let currentLanguage = localStorage.getItem('language') || 'en';
+    languageToggle.textContent = currentLanguage === 'es' ? 'Switch to English' : 'Switch to Spanish';
 
-  // Retrieve the current language from localStorage or default to English
-  let currentLanguage = localStorage.getItem('language') || 'en';
-
-  // Function to update the language
-  const updateLanguage = (language) => {
-    // Re-scan all elements that have data-lang-en
-    const elementsToTranslate = document.querySelectorAll('[data-lang-en]');
-    elementsToTranslate.forEach(el => {
-      el.textContent = language === 'es' ? el.getAttribute('data-lang-es') : el.getAttribute('data-lang-en');
+    languageToggle.addEventListener('click', () => {
+      currentLanguage = currentLanguage === 'en' ? 'es' : 'en';
+      localStorage.setItem('language', currentLanguage);
+      applyStoredLanguage();
+      languageToggle.textContent = currentLanguage === 'es' ? 'Switch to English' : 'Switch to Spanish';
     });
-    languageToggle.textContent = language === 'es' ? 'Switch to English' : 'Switch to Spanish';
-    localStorage.setItem('language', language);
-  };
-
-  // Initialize the page with the current language
-  updateLanguage(currentLanguage);
-
-  // Add event listener to toggle the language
-  languageToggle.addEventListener('click', () => {
-    currentLanguage = currentLanguage === 'en' ? 'es' : 'en';
-    updateLanguage(currentLanguage);
-  });
+  }
 });
+
+function applyStoredLanguage() {
+  const language = localStorage.getItem('language') || 'en';
+  const elementsToTranslate = document.querySelectorAll('[data-lang-en]');
+  elementsToTranslate.forEach(el => {
+    el.textContent = language === 'es' ? el.getAttribute('data-lang-es') : el.getAttribute('data-lang-en');
+  });
+}
