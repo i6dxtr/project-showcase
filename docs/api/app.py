@@ -1,4 +1,5 @@
 from flask import Flask, request, jsonify, send_from_directory
+from flask_cors import CORS
 import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
@@ -8,7 +9,9 @@ import sqlite3
 from googletrans import Translator
 import os
 
+
 app = Flask(__name__)
+CORS(app)
 
 # Add root route handler
 @app.route('/')
