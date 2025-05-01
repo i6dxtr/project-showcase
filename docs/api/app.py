@@ -3,9 +3,10 @@ import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 import sys
-from gtts import gTTS
+import pyttsx3  # Changed from gTTS to pyttsx3
 import sqlite3
 from googletrans import Translator
+import os
 
 app = Flask(__name__)
 
@@ -18,7 +19,7 @@ def create_session():
     )
     adapter = HTTPAdapter(max_retries=retry)
     session.mount('http://', adapter)
-    session.headers.update({'Connection': 'close'})  # Force connection close
+    session.headers.update({'Connection': 'close'})
     return session
 
 @app.route('/predict', methods=['POST'])
@@ -27,7 +28,6 @@ def predict():
     try:
         session = create_session()
         
-        # Forward the request directly without testing connection
         files = {'image': (
             request.files['image'].filename,
             request.files['image'].stream,
@@ -35,7 +35,7 @@ def predict():
         )}
         
         response = session.post(
-            'http://localhost:8000/predict',
+            'http://localhost:8080/predict',
             files=files,
             timeout=30,
             headers={'Connection': 'close'}
@@ -59,7 +59,7 @@ def predict():
 @app.route('/query', methods=['POST'])
 def query():
     """
-    Handle SQL queries and return results with optional TTS.
+    Handle SQL queries and return results with optional TTS using eSpeak/pyttsx3
     """
     try:
         data = request.json
@@ -104,18 +104,44 @@ def query():
         if not result:
             return jsonify(success=False, error="Product not found"), 404
 
-        # Translate and generate TTS
+        # Translate if needed
         detail_text = f"{query_type.capitalize()} for {product_name}: {result}"
         if language == 'es':  # Translate to Spanish if selected
             translator = Translator()
             detail_text = translator.translate(detail_text, src='en', dest='es').text
 
-        tts = gTTS(text=detail_text, lang=language)
-        audio_file = f"static/{product_name.replace(' ', '_')}_{query_type}.mp3"
-        tts.save(audio_file)
+        # Generate TTS using pyttsx3 (eSpeak backend)
+        engine = pyttsx3.init()
+        
+        # Set language if possible (note: eSpeak language support is limited)
+        try:
+            voices = engine.getProperty('voices')
+            if language == 'es':
+                for voice in voices:
+                    if 'spanish' in voice.name.lower():
+                        engine.setProperty('voice', voice.id)
+                        break
+            else:  # Default to English
+                for voice in voices:
+                    if 'english' in voice.name.lower():
+                        engine.setProperty('voice', voice.id)
+                        break
+        except Exception as e:
+            print(f"⚠️ Couldn't set voice language: {e}", file=sys.stderr)
+
+        # Save to file
+        audio_file = f"static/{product_name.replace(' ', '_')}_{query_type}.wav"  # Changed to WAV format
+        engine.save_to_file(detail_text, audio_file)
+        engine.runAndWait()  # This generates the file
 
         return jsonify(success=True, details=result, audio_url=f"/{audio_file}")
 
     except Exception as e:
         print(f"❌ Error in /query: {e}", file=sys.stderr)
         return jsonify(success=False, error=str(e)), 500
+
+if __name__ == '__main__':
+    # Create static directory if it doesn't exist
+    if not os.path.exists('static'):
+        os.makedirs('static')
+    app.run(debug=True)
