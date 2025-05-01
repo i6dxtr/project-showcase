@@ -81,9 +81,10 @@
       updateLanguage(currentLanguage);
 
       /* ---------- headline + image ------------------------------ */
+      /* Update the product name section */
       const storedName = localStorage.getItem('productName');
-      const productName = storedName ? storedName : 'Unknown Product';
-      document.getElementById('product-name').textContent = productName;
+      const productName = storedName || 'Unknown Product';  // Ensure fallback
+      document.getElementById('product-name').textContent = `Product: ${productName}`;
 
       const savedImg = localStorage.getItem('capturedImage');
       if (savedImg) document.getElementById('captured-image').src = savedImg;

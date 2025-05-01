@@ -82,8 +82,12 @@ def predict():
         # Get the predicted label from the model response
         label = response_data.get('prediction', 'unknown')  # Adjust based on your model server's response
 
-        # Customize response
-        response = make_response(jsonify(success=True, product_name=label, message="Classification successful!"))
+        # Return consistent response format matching frontend expectations
+        response = make_response(jsonify({
+            'success': True,
+            'prediction': label,
+            'message': "Classification successful!"
+        }))
         response.headers['Content-Type'] = 'application/json'
         return response
         
