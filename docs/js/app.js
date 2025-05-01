@@ -191,6 +191,18 @@ class VisionApp {
     document.getElementById('allergen-btn').addEventListener('click', () => this.fetchQuery('allergen'));
     document.getElementById('price-btn').addEventListener('click', () => this.fetchQuery('price'));
     document.getElementById('go-back-btn').addEventListener('click', () => this.goBack());
+    document.getElementById('language-toggle').addEventListener('click', () => {
+      const toggleButton = document.getElementById('language-toggle');
+      const isEnglish = toggleButton.textContent.includes('Spanish');
+
+      // Update button text
+      toggleButton.textContent = isEnglish ? 'Switch to English' : 'Switch to Spanish';
+
+      // Update page content based on the selected language
+      document.querySelectorAll('[data-lang-en]').forEach(el => {
+        el.textContent = isEnglish ? el.getAttribute('data-lang-es') : el.getAttribute('data-lang-en');
+      });
+    });
   }
 
   goBack() {
