@@ -14,8 +14,14 @@
 <body class="bg-light d-flex flex-column min-vh-100">
   <div class="container text-center my-5">
     <div class="d-flex justify-content-between align-items-center mb-4">
-      <h1 class="mb-0">🧠 Smart Vision Classifier</h1>
-      <button id="language-toggle" class="btn btn-outline-secondary">Cambiar a Español</button>
+      <h1 class="mb-0" data-lang-en="🧠 Smart Vision Classifier" data-lang-es="🧠 Clasificador de Visión Inteligente">
+        🧠 Smart Vision Classifier
+      </h1>
+      <button id="language-toggle" class="btn btn-outline-secondary" 
+              data-lang-en="Cambiar a Español" 
+              data-lang-es="Switch to English">
+        Cambiar a Español
+      </button>
     </div>
 
     <div id="capture-section" class="card shadow p-4">
@@ -23,31 +29,73 @@
         <video id="video" class="fade" autoplay playsinline></video>
         <canvas id="canvas" class="fade"></canvas>
       </div>
+      
       <div class="mb-3">
-        <select id="camera-select" class="form-select">
+        <select id="camera-select" class="form-select" 
+                data-lang-en="Select Camera..." 
+                data-lang-es="Seleccionar Cámara...">
           <option value="">Select Camera...</option>
         </select>
       </div>
-      <button id="capture" class="btn btn-primary mb-3 me-2">Capture & Predict</button>
-      <button id="retake" class="btn btn-secondary mb-3" style="display:none;">Retake</button>
+
+      <button id="capture" class="btn btn-primary mb-3 me-2" 
+              data-lang-en="Capture & Predict" 
+              data-lang-es="Capturar y Predecir">
+        Capture & Predict
+      </button>
+
+      <button id="retake" class="btn btn-secondary mb-3" 
+              data-lang-en="Retake" 
+              data-lang-es="Volver a Tomar"
+              style="display:none;">
+        Retake
+      </button>
+
       <div id="result" class="alert alert-secondary d-flex align-items-center justify-content-center" role="alert">
         <div id="spinner" class="spinner-border me-2" role="status" style="display:none;"></div>
-        <span id="result-text">Awaiting capture...</span>
+        <span id="result-text" 
+              data-lang-en="Awaiting capture..." 
+              data-lang-es="Esperando captura...">
+          Awaiting capture...
+        </span>
       </div>
     </div>
 
     <div id="query-section" class="card shadow p-4" style="display:none;">
       <h2 id="product-name" class="mb-4"></h2>
-      <button id="nutrition-btn" class="btn btn-info mb-2">Nutrition Facts</button>
-      <button id="allergen-btn" class="btn btn-warning mb-2">Allergen Information</button>
-      <button id="price-btn" class="btn btn-success mb-2">Price</button>
-      <button id="go-back-btn" class="btn btn-secondary">Go Back</button>
+      
+      <button id="nutrition-btn" class="btn btn-info mb-2" 
+              data-lang-en="Nutrition Facts" 
+              data-lang-es="Información Nutricional">
+        Nutrition Facts
+      </button>
+
+      <button id="allergen-btn" class="btn btn-warning mb-2" 
+              data-lang-en="Allergen Information" 
+              data-lang-es="Información de Alérgenos">
+        Allergen Information
+      </button>
+
+      <button id="price-btn" class="btn btn-success mb-2" 
+              data-lang-en="Price" 
+              data-lang-es="Precio">
+        Price
+      </button>
+
+      <button id="go-back-btn" class="btn btn-secondary" 
+              data-lang-en="Go Back" 
+              data-lang-es="Regresar">
+        Go Back
+      </button>
+
       <div id="query-result" class="mt-4"></div>
     </div>
   </div>
 
   <footer class="mt-auto text-center p-3">
-    <small>&copy; 2025 VisionApp Prototype</small>
+    <small data-lang-en="© 2025 VisionApp Prototype" data-lang-es="© 2025 Prototipo VisionApp">
+      © 2025 VisionApp Prototype
+    </small>
   </footer>
 
   <!-- Bootstrap JS -->

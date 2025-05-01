@@ -26,6 +26,10 @@ class VisionApp {
         this.cameraSelect.value = defaultCam;
         return this.initializeCamera(defaultCam);
       });
+
+      // Language init
+    this.currentLanguage = localStorage.getItem('language') || 'en';
+    this.updateLanguage(this.currentLanguage);
   }
 
   /* ---------- Camera helpers ------------------------------------------------ */
@@ -193,6 +197,16 @@ class VisionApp {
     document.getElementById('result-text').textContent = 'Awaiting capture…';
   }
 
+  // TL
+  updateLanguage(language) {
+    document.querySelectorAll('[data-lang-en]').forEach(el => {
+      el.textContent = language === 'es' 
+        ? el.getAttribute('data-lang-es') 
+        : el.getAttribute('data-lang-en');
+    });
+    localStorage.setItem('language', language);
+  }
+
   /* ---------- Listeners ----------------------------------------------------- */
 
   setupEventListeners() {
@@ -204,6 +218,11 @@ class VisionApp {
     document.getElementById('allergen-btn').addEventListener('click', () => this.fetchQuery('allergen'));
     document.getElementById('price-btn')   .addEventListener('click', () => this.fetchQuery('price'));
     document.getElementById('go-back-btn') .addEventListener('click', () => this.goBack());
+    // language toggle listener
+    document.getElementById('language-toggle').addEventListener('click', () => {
+      this.currentLanguage = this.currentLanguage === 'en' ? 'es' : 'en';
+      this.updateLanguage(this.currentLanguage);
+    });
   }
 
   goBack() {
