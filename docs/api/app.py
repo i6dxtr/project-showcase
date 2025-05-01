@@ -35,7 +35,7 @@ def predict():
         )}
         
         response = session.post(
-            'http://localhost:8000/predict',
+            'http://localhost:8080/predict',
             files=files,
             timeout=30,
             headers={'Connection': 'close'}
