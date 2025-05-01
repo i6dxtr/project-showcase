@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify, send_from_directory, make_response
 from flask_cors import CORS
 import requests
 from requests.adapters import HTTPAdapter
@@ -55,30 +55,37 @@ def predict():
         # Create a session for the downstream request
         session = create_session()
 
-        # Prepare files for request
+        # Prepare files for the request
         files = {
-            'image': (
-                file.filename,
-                file.stream,
-                file.content_type
-            )
+            'image': (file.filename, file.stream, file.content_type)
         }
 
         print("Forwarding request to the internal prediction service...", file=sys.stderr)
 
         # Send the file to the downstream service
         response = session.post(
-            'http://localhost:8080/predict',  # Update this to appropriate URL
+            'http://localhost:8000/predict',  # Ensure the model server is running on this endpoint
             files=files,
-            timeout=30,
-            headers={'Connection': 'close'}
+            timeout=30
         )
-        
+
         # Log response status code
         print(f"Received response status code: {response.status_code}", file=sys.stderr)
 
-        # Return the response as a JSON object
-        return response.json()
+        # Parse the response from the model server
+        response_data = response.json()
+
+        # Check if the model server returned a successful prediction
+        if not response_data.get('success', False):
+            return jsonify(success=False, error="Model server error: " + response_data.get('error')), 500
+
+        # Get the predicted label from the model response
+        label = response_data.get('prediction', 'unknown')  # Adjust based on your model server's response
+
+        # Customize response
+        response = make_response(jsonify(success=True, product_name=label, message="Classification successful!"))
+        response.headers['Content-Type'] = 'application/json'
+        return response
         
     except requests.exceptions.RequestException as e:
         print(f"Request error: {str(e)}", file=sys.stderr)
