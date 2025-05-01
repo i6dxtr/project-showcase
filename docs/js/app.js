@@ -1,4 +1,4 @@
-const API_URL = "https://8ea1-75-187-72-180.ngrok-free.app";
+const API_URL = "https://aba1-75-187-72-180.ngrok-free.app";
 
 class VisionApp {
   constructor() {
