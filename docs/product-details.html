@@ -65,25 +65,20 @@
   <script>
     const API_URL = "https://ba61-75-187-72-180.ngrok-free.app";
 
-    // Product name mapping
-    const product_mapping = {
-      'product-a': 'Kroger Creamy Peanut Butter',
-      'product-b': 'Great Value Twist and Shout Cookies',
-      'product-c': 'Morton Coarse Kosher Salt',
-      'product-d': 'Kroger Extra Virgin Olive Oil'
-      // Add more mappings as needed
-    };
-
-    // Function to get display name
-    const getDisplayName = (productId) => {
-      return product_mapping[productId] || productId;
-    };
-
     document.addEventListener('DOMContentLoaded', () => {
       // Get stored values
       const storedName = localStorage.getItem('productName');
       const productName = storedName || 'Unknown Product';
       let currentLanguage = localStorage.getItem('language') || 'en';
+
+      // Product mapping
+      const product_mapping = {
+        'product-a': 'Kroger Creamy Peanut Butter',
+        'product-b': 'Great Value Twist and Shout Cookies',
+        'product-c': 'Morton Coarse Kosher Salt',
+        'product-d': 'Kroger Extra Virgin Olive Oil',
+        // Add more mappings as needed
+      };
 
       // Update all translations
       const updateLanguage = (lang) => {
@@ -98,8 +93,9 @@
       // Initialize language
       updateLanguage(currentLanguage);
 
-      // Set product name using mapped value
-      document.getElementById('product-name').textContent = `Product: ${getDisplayName(productName)}`;
+      // Set product name (don't translate this)
+      const displayName = product_mapping[productName.toLowerCase()] || productName;
+      document.getElementById('product-name').textContent = `Product: ${displayName}`;
 
       // Set stored image if available
       const savedImg = localStorage.getItem('capturedImage');
@@ -125,7 +121,7 @@
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              product_name: productName, // Using original product name for API calls
+              product_name: productName,
               query_type: queryType,
               language: currentLanguage
             })
@@ -133,15 +129,8 @@
 
           const data = await response.json();
           if (data.success) {
-            // Replace any product IDs in the response with display names
-            let formattedDetails = data.details;
-            Object.keys(product_mapping).forEach(key => {
-              formattedDetails = formattedDetails.replace(new RegExp(key, 'g'), getDisplayName(key));
-            });
-
             queryResult.innerHTML = `
-              <h4>${getDisplayName(productName)}</h4>
-              <p>${formattedDetails}</p>
+              <p>${data.details}</p>
               <audio controls>
                 <source src="${data.audio_url}" type="audio/mpeg">
                 ${currentLanguage === 'es' 
