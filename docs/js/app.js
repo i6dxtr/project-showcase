@@ -15,6 +15,14 @@ class VisionApp {
     this.queryResult    = document.getElementById('query-result');
     this.currentStream  = null;
 
+    this.product_images = {
+      'product-a': '../stock/pb.png',
+      'product-b': '../stock/cookies.png',
+      'product-c': '../stock/salt.pngg',
+      'product-d': '../stock/cracker.png',
+      // Add more mappings as needed
+    };
+
     // Product mapping - Define it here so it's available throughout the class
     this.product_mapping = {
       'product-a': 'Kroger Creamy Peanut Butter',
@@ -205,7 +213,7 @@ class VisionApp {
 
   showQuerySection(productCode) {
     this.captureSection.style.display = 'none';
-    this.querySection.style.display   = 'block';
+    this.querySection.style.display = 'block';
     
     // Apply the product mapping to get friendly name
     const displayName = this.product_mapping[productCode.toLowerCase()] || productCode;
@@ -213,12 +221,21 @@ class VisionApp {
     // Translate product name if Spanish is selected
     let translatedName = displayName;
     if (this.currentLanguage === 'es' && this.product_translations[displayName]) {
-      translatedName = this.product_translations[displayName];
+        translatedName = this.product_translations[displayName];
     }
     
-    const prefix = this.currentLanguage === 'es' ? 'Producto: ' : 'Product: ';
-    this.productNameEl.textContent = `${prefix}${translatedName}`;
+    // Get the image path
+    const imagePath = this.product_images[productCode.toLowerCase()] || '/images/default-product.jpg';
+    
+    // Create the product display with image and name
+    this.productNameEl.innerHTML = `
+        <div class="product-display">
+            <img src="${imagePath}" alt="${translatedName}" class="product-image">
+            <p>${this.currentLanguage === 'es' ? 'Producto: ' : 'Product: '} ${translatedName}</p>
+        </div>
+    `;
   }
+
 
   async fetchQuery(queryType) {
     // Get the original product code for API call
