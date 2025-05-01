@@ -35,33 +35,32 @@ def create_session():
 
 @app.route('/predict', methods=['POST'])
 def predict():
-    print("🔍 /predict called", file=sys.stderr)
+    print("/predict called")
     try:
         session = create_session()
-        
-        files = {'image': (
-            request.files['image'].filename,
-            request.files['image'].stream,
-            request.files['image'].content_type
-        )}
-        
+
+        # Prepare files for request
+        files = {
+            'image': (
+                request.files['image'].filename,
+                request.files['image'].stream,
+                request.files['image'].content_type
+            )
+        }
+
         response = session.post(
-            'http://localhost:8000/predict',
+            'https://i6dxtr.pythonanywhere.com/predict',
             files=files,
-            timeout=30,
-            headers={'Connection': 'close'}
+            timeout=30
         )
-        
+
+        # Check for HTTP response issues
+        if response.status_code != 200:
+            raise ValueError(f"Unexpected status code: {response.status_code}")
+
         return response.json()
-        
-    except requests.exceptions.RequestException as e:
-        print(f"Request error: {str(e)}", file=sys.stderr)
-        return jsonify({
-            'success': False,
-            'error': f'Connection error: {str(e)}'
-        }), 503
     except Exception as e:
-        print(f"Error: {str(e)}", file=sys.stderr)
+        print(f"Error in prediction: {e}", file=sys.stderr)
         return jsonify({
             'success': False,
             'error': str(e)
