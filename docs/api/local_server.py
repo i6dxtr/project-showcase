@@ -6,6 +6,7 @@ from tensorflow.keras.models import load_model
 import json
 import sys
 import os
+import traceback
 
 app = Flask(__name__)
 CORS(app)
@@ -35,10 +36,12 @@ def index():
 
 @app.route('/predict', methods=['POST'])
 def predict():
+    print("/predict called", file=sys.stderr)
     try:
         file = request.files.get('image')
         if not file:
             return jsonify(success=False, error="No image file provided"), 400
+
 
         # Convert file to OpenCV format
         data = np.frombuffer(file.read(), np.uint8)
@@ -58,10 +61,11 @@ def predict():
 
         response = make_response(jsonify(success=True, prediction=label))
         response.headers['Content-Type'] = 'application/json'
-        return response
+        return jsonify(success=True, prediction=label)
 
     except Exception as e:
-        print(f"Error in prediction: {e}", file=sys.stderr)
+        print(f"Error in prediction: {str(e)}", file=sys.stderr)
+        print(traceback.format_exc(), file=sys.stderr)  # Log the stack trace
         return jsonify(success=False, error=str(e)), 500
 
 if __name__ == '__main__':
