@@ -1,10 +1,10 @@
-from flask import Flask, request, jsonify, send_from_directory, make_response
+from flask import Flask, request, jsonify, send_from_directory, make_response 
 from flask_cors import CORS
 import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 import sys
-import pyttsx3  # Changed from gTTS to pyttsx3
+import pyttsx3
 import sqlite3
 from googletrans import Translator
 import os
@@ -125,10 +125,42 @@ def query():
         # Construct database path
         db_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'db', 'products.db'))
         print(f"Database path: {db_path}", file=sys.stderr)
+        print(f"Querying for product: {product_name}, type: {query_type}", file=sys.stderr)
 
         # Connect to database
         connection = sqlite3.connect(db_path)
+        connection.row_factory = sqlite3.Row  # This allows us to access columns by name
         cursor = connection.cursor()
+
+        # Map prediction labels to actual product names in the database
+        product_mapping = {
+            'product-a': 'Kroger Creamy Peanut Butter',  # Example mapping for product-a
+            'product-b': 'product-b',  # Replace with actual product name from database
+            'product-c': 'product-c',  # Replace with actual product name from database
+            'product-d': 'product-d',  # Replace with actual product name from database
+            # Add more mappings as needed
+        }
+        
+        # Normalize product name to match database entries
+        normalized_product = product_mapping.get(product_name.lower().strip(), product_name)
+        print(f"Normalized product name: {normalized_product}", file=sys.stderr)
+        
+        # Debug: List all products in the database
+        cursor.execute("SELECT id, name FROM products")
+        all_products = cursor.fetchall()
+        print("Available products in database:", file=sys.stderr)
+        for p in all_products:
+            print(f"ID: {p['id']}, Name: {p['name']}", file=sys.stderr)
+            
+        # Create reverse mapping from predictions back to product IDs for faster lookup
+        product_id_mapping = {}
+        for p in all_products:
+            product_id_mapping[p['name'].lower()] = p['id']
+        print("Product ID mapping:", product_id_mapping, file=sys.stderr)
+
+        # Initialize detail_text
+        detail_text = ""
+        result = None
 
         # Select appropriate query based on type
         if query_type == 'nutrition':
@@ -138,50 +170,103 @@ def query():
                     total_carbs, fiber, sugar, protein
                 FROM nutritional_info
                 JOIN products ON products.id = nutritional_info.product_id
-                WHERE products.name = ?
+                WHERE LOWER(products.name) = LOWER(?)
             '''
-            cursor.execute(query, (product_name,))
+            cursor.execute(query, (normalized_product,))
             result = cursor.fetchone()
             
             if result:
-                detail_text = f"Calories: {result[0]}, Fat: {result[1]}, "
-                detail_text += f"Cholesterol: {result[2]}, Sodium: {result[3]}, "
-                detail_text += f"Carbs: {result[4]}, Fiber: {result[5]}, "
-                detail_text += f"Sugar: {result[6]}, Protein: {result[7]}"
+                detail_text = f"Calories: {result['calories']}, Fat: {result['total_fat']}, "
+                detail_text += f"Cholesterol: {result['cholesterol']}, Sodium: {result['sodium']}, "
+                detail_text += f"Carbs: {result['total_carbs']}, Fiber: {result['fiber']}, "
+                detail_text += f"Sugar: {result['sugar']}, Protein: {result['protein']}"
 
         elif query_type == 'allergen':
             query = '''
                 SELECT allergy
                 FROM nutritional_info
                 JOIN products ON products.id = nutritional_info.product_id
-                WHERE products.name = ?
+                WHERE LOWER(products.name) = LOWER(?)
             '''
-            cursor.execute(query, (product_name,))
+            cursor.execute(query, (normalized_product,))
             result = cursor.fetchone()
             
             if result:
-                detail_text = f"Allergen Information: {result[0]}"
+                detail_text = f"Allergen Information: {result['allergy']}"
 
         elif query_type == 'price':
             query = '''
                 SELECT cost
                 FROM products
-                WHERE name = ?
+                WHERE LOWER(name) = LOWER(?)
             '''
-            cursor.execute(query, (product_name,))
+            cursor.execute(query, (normalized_product,))
             result = cursor.fetchone()
             
             if result:
-                detail_text = f"Price: ${result[0]:.2f}"
+                detail_text = f"Price: ${result['cost']:.2f}"
 
         else:
             connection.close()
             return jsonify(success=False, error="Invalid query_type"), 400
 
-        connection.close()
-
+        # If no result found, try direct query by ID if this is a prediction label
+        if not result and product_name.startswith('product-'):
+            # Extract the letter from product-X format
+            product_letter = product_name.split('-')[-1]
+            product_number = ord(product_letter) - ord('a') + 1  # Convert a->1, b->2, etc.
+            
+            print(f"Trying direct ID lookup for {product_name} -> ID: {product_number}", file=sys.stderr)
+            
+            # Adjust the queries to use direct ID
+            if query_type == 'nutrition':
+                query = '''
+                    SELECT 
+                        calories, total_fat, cholesterol, sodium, 
+                        total_carbs, fiber, sugar, protein
+                    FROM nutritional_info
+                    WHERE product_id = ?
+                '''
+                cursor.execute(query, (product_number,))
+                result = cursor.fetchone()
+                
+                if result:
+                    detail_text = f"Calories: {result['calories']}, Fat: {result['total_fat']}, "
+                    detail_text += f"Cholesterol: {result['cholesterol']}, Sodium: {result['sodium']}, "
+                    detail_text += f"Carbs: {result['total_carbs']}, Fiber: {result['fiber']}, "
+                    detail_text += f"Sugar: {result['sugar']}, Protein: {result['protein']}"
+            
+            elif query_type == 'allergen':
+                query = '''
+                    SELECT allergy
+                    FROM nutritional_info
+                    WHERE product_id = ?
+                '''
+                cursor.execute(query, (product_number,))
+                result = cursor.fetchone()
+                
+                if result:
+                    detail_text = f"Allergen Information: {result['allergy']}"
+                    
+            elif query_type == 'price':
+                query = '''
+                    SELECT cost
+                    FROM products
+                    WHERE id = ?
+                '''
+                cursor.execute(query, (product_number,))
+                result = cursor.fetchone()
+                
+                if result:
+                    detail_text = f"Price: ${result['cost']:.2f}"
+        
+        # If still no result, log detailed info and return error
         if not result:
-            return jsonify(success=False, error="Product not found"), 404
+            print(f"No result found for product: {normalized_product}", file=sys.stderr)
+            connection.close()
+            return jsonify(success=False, error=f"Product not found: {product_name}"), 404
+
+        connection.close()
 
         # Translate if Spanish is requested
         if language == 'es':
@@ -209,7 +294,8 @@ def query():
                     engine.setProperty('voice', english_voice.id)
 
             # Generate unique filename
-            filename = f"{product_name.replace(' ', '_')}_{query_type}_{language}.wav"
+            safe_product_name = normalized_product.replace(' ', '_').replace('-', '_')
+            filename = f"{safe_product_name}_{query_type}_{language}.wav"
             audio_path = os.path.join('static', filename)
             
             # Create static directory if it doesn't exist
@@ -222,7 +308,8 @@ def query():
             return jsonify({
                 'success': True,
                 'details': detail_text,
-                'audio_url': f"/static/{filename}"
+                'audio_url': f"/static/{filename}",
+                'product_name': normalized_product  # Return the normalized product name
             })
 
         except Exception as e:
@@ -231,59 +318,13 @@ def query():
             return jsonify({
                 'success': True,
                 'details': detail_text,
-                'error': "Audio generation failed"
+                'error': "Audio generation failed",
+                'product_name': normalized_product
             })
 
     except Exception as e:
         print(f"Query error: {e}", file=sys.stderr)
         return jsonify(success=False, error=str(e)), 500
-    
-
-def test_db_connection():
-    """Test database connection and contents"""
-    try:
-        db_path = os.path.join(os.path.dirname(__file__), '..', 'db', 'products.db')
-        print(f"\nTesting database at: {db_path}", file=sys.stderr)
-        
-        if not os.path.exists(db_path):
-            print("❌ Database file not found!", file=sys.stderr)
-            return
-            
-        conn = sqlite3.connect(db_path)
-        cursor = conn.cursor()
-        
-        # Test 1: Check tables exist
-        cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
-        tables = cursor.fetchall()
-        print("\nTables in database:", file=sys.stderr)
-        for table in tables:
-            print(f"- {table[0]}", file=sys.stderr)
-            
-        # Test 2: Check products
-        cursor.execute("SELECT * FROM products;")
-        products = cursor.fetchall()
-        print("\nProducts in database:", file=sys.stderr)
-        for product in products:
-            print(f"- ID: {product[0]}, Name: {product[1]}, Cost: ${product[2]}", file=sys.stderr)
-            
-        # Test 3: Check nutritional info
-        cursor.execute("""
-            SELECT p.name, n.calories, n.allergy 
-            FROM products p 
-            JOIN nutritional_info n ON p.id = n.product_id;
-        """)
-        nutrition = cursor.fetchall()
-        print("\nNutritional info:", file=sys.stderr)
-        for item in nutrition:
-            print(f"- {item[0]}: {item[1]} calories, Allergens: {item[2]}", file=sys.stderr)
-            
-        conn.close()
-        print("\n✅ Database connection successful!", file=sys.stderr)
-        
-    except sqlite3.Error as e:
-        print(f"\n❌ Database error: {e}", file=sys.stderr)
-    except Exception as e:
-        print(f"\n❌ Unexpected error: {e}", file=sys.stderr)
 
 # Add this route to test the database
 @app.route('/test-db', methods=['GET'])
