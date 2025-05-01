@@ -1,6 +1,26 @@
-/* docs/js/app.js */
-
 const API_URL = "https://f9cf-75-187-72-180.ngrok-free.app";
+
+// --------- Helper Functions ---------
+
+function applyStoredLanguage() {
+  const language = localStorage.getItem('language') || 'en';
+  const elementsToTranslate = document.querySelectorAll('[data-lang-en]');
+
+  elementsToTranslate.forEach(el => {
+    el.textContent = language === 'es' ? el.getAttribute('data-lang-es') : el.getAttribute('data-lang-en');
+  });
+
+  // Update product name if stored
+  const productNameElement = document.getElementById('product-name');
+  if (productNameElement) {
+    const storedProductName = localStorage.getItem('productName');
+    if (storedProductName) {
+      productNameElement.textContent = storedProductName;
+    }
+  }
+}
+
+// --------- VisionApp Class ---------
 
 class VisionApp {
   constructor() {
@@ -16,18 +36,17 @@ class VisionApp {
     this.queryResult = document.getElementById('query-result');
     this.currentStream = null;
 
-    this.setupEventListeners();
-    // 1) Prompt for camera permission (default)
-    // 2) List devices, choose rear cam on mobile, then re-open that stream
-    this.initializeCamera()
-      .then(() => this.getCameraDevices())
-      .then(() => {
-        // simple mobile check
-        const isMobile = /Mobi|Android/i.test(navigator.userAgent);
-        const defaultCam = isMobile ? 'environment' : 'default';
-        this.cameraSelect.value = defaultCam;
-        return this.initializeCamera(defaultCam);
-      });
+    if (this.captureButton) {
+      this.setupEventListeners();
+      this.initializeCamera()
+        .then(() => this.getCameraDevices())
+        .then(() => {
+          const isMobile = /Mobi|Android/i.test(navigator.userAgent);
+          const defaultCam = isMobile ? 'environment' : 'default';
+          this.cameraSelect.value = defaultCam;
+          return this.initializeCamera(defaultCam);
+        });
+    }
   }
 
   async getCameraDevices() {
@@ -53,19 +72,18 @@ class VisionApp {
   }
 
   async initializeCamera(selection = 'default') {
-    // Stop any old stream
     if (this.currentStream) {
       this.currentStream.getTracks().forEach(t => t.stop());
       this.currentStream = null;
     }
 
-    // Reset UI
+    if (!this.video) return; // If no video element exists on page
+
     this.video.classList.add('show');
     this.canvas.classList.remove('show');
     this.captureButton.style.display = 'inline-block';
     this.retakeButton.style.display = 'none';
 
-    // Build constraints
     let videoConstraint;
     if (selection === 'default') {
       videoConstraint = { width: { ideal: 1280 }, height: { ideal: 720 } };
@@ -101,7 +119,6 @@ class VisionApp {
   }
 
   async captureImage() {
-    // size canvas to display size
     this.canvas.width = this.video.clientWidth;
     this.canvas.height = this.video.clientHeight;
     this.canvas.getContext('2d').drawImage(this.video, 0, 0, this.canvas.width, this.canvas.height);
@@ -143,11 +160,12 @@ class VisionApp {
     this.captureSection.style.display = 'none';
     this.querySection.style.display = 'block';
     this.productName.textContent = `Product: ${productName}`;
+    localStorage.setItem('productName', productName);
   }
 
   async fetchQuery(queryType) {
     const productName = this.productName.textContent.replace('Product: ', '');
-    const language = document.querySelector('input[name="language"]:checked').value || 'en';
+    const language = localStorage.getItem('language') || 'en';
     this.queryResult.textContent = 'Loading...';
 
     try {
@@ -184,15 +202,21 @@ class VisionApp {
   }
 
   setupEventListeners() {
-    this.captureButton.addEventListener('click', () => this.captureImage());
-    this.retakeButton.addEventListener('click', () => this.retakeImage());
-    this.cameraSelect.addEventListener('change', () => {
+    if (this.captureButton) this.captureButton.addEventListener('click', () => this.captureImage());
+    if (this.retakeButton) this.retakeButton.addEventListener('click', () => this.retakeImage());
+    if (this.cameraSelect) this.cameraSelect.addEventListener('change', () => {
       this.initializeCamera(this.cameraSelect.value);
     });
-    document.getElementById('nutrition-btn').addEventListener('click', () => this.fetchQuery('nutrition'));
-    document.getElementById('allergen-btn').addEventListener('click', () => this.fetchQuery('allergen'));
-    document.getElementById('price-btn').addEventListener('click', () => this.fetchQuery('price'));
-    document.getElementById('go-back-btn').addEventListener('click', () => this.goBack());
+
+    const nutritionBtn = document.getElementById('nutrition-btn');
+    const allergenBtn = document.getElementById('allergen-btn');
+    const priceBtn = document.getElementById('price-btn');
+    const goBackBtn = document.getElementById('go-back-btn');
+
+    if (nutritionBtn) nutritionBtn.addEventListener('click', () => this.fetchQuery('nutrition'));
+    if (allergenBtn) allergenBtn.addEventListener('click', () => this.fetchQuery('allergen'));
+    if (priceBtn) priceBtn.addEventListener('click', () => this.fetchQuery('price'));
+    if (goBackBtn) goBackBtn.addEventListener('click', () => this.goBack());
   }
 
   goBack() {
@@ -201,11 +225,13 @@ class VisionApp {
   }
 }
 
+// --------- Main Initialization ---------
+
 window.addEventListener('load', () => new VisionApp());
 
 document.addEventListener('DOMContentLoaded', () => {
   applyStoredLanguage();
-  
+
   const languageToggle = document.getElementById('language-toggle');
   if (languageToggle) {
     let currentLanguage = localStorage.getItem('language') || 'en';
@@ -219,11 +245,3 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 });
-
-function applyStoredLanguage() {
-  const language = localStorage.getItem('language') || 'en';
-  const elementsToTranslate = document.querySelectorAll('[data-lang-en]');
-  elementsToTranslate.forEach(el => {
-    el.textContent = language === 'es' ? el.getAttribute('data-lang-es') : el.getAttribute('data-lang-en');
-  });
-}
