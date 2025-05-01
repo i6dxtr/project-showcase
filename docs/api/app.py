@@ -329,7 +329,6 @@ def query():
 # Add this route to test the database
 @app.route('/test-db', methods=['GET'])
 def test_db():
-    test_db_connection()
     return jsonify({"message": "Check server logs for database test results"})
 
 # Add route to serve static files
@@ -339,7 +338,7 @@ def serve_static(filename):
 
 if __name__ == '__main__':
     # Create static directory if it doesn't exist
-    test_db_connection()  # Test DB before starting server
+    # test_db_connection()  # Test DB before starting server
     if not os.path.exists('static'):
         os.makedirs('static')
     app.run(host='0.0.0.0', port=5000, debug=True)
