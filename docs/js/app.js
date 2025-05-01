@@ -1,4 +1,4 @@
-/* docs/js/app.js */
+/* app.js - Fixed Version */
 const API_URL = "https://ba61-75-187-72-180.ngrok-free.app";
 
 class VisionApp {
@@ -15,6 +15,15 @@ class VisionApp {
     this.queryResult    = document.getElementById('query-result');
     this.currentStream  = null;
 
+    // Product mapping
+    this.product_mapping = {
+      'product-a': 'Kroger Creamy Peanut Butter',
+      'product-b': 'Great Value Twist and Shout Cookies',
+      'product-c': 'Morton Coarse Kosher Salt',
+      'product-d': 'Kroger Extra Virgin Olive Oil',
+      // Add more mappings as needed
+    };
+
     this.setupEventListeners();
 
     // Prompt, list cameras and default to rear on mobile
@@ -27,9 +36,15 @@ class VisionApp {
         return this.initializeCamera(defaultCam);
       });
 
-      // Language init
+    // Language init
     this.currentLanguage = localStorage.getItem('language') || 'en';
     this.updateLanguage(this.currentLanguage);
+    
+    // Check if we need to show product details
+    const storedProduct = localStorage.getItem('productName');
+    if (storedProduct) {
+      this.showQuerySection(storedProduct);
+    }
   }
 
   /* ---------- Camera helpers ------------------------------------------------ */
@@ -133,12 +148,14 @@ class VisionApp {
       const data = await resp.json();
 
       if (data.success) {
-        /*— QUICK-FIX additions —*/
-        localStorage.setItem('productName',  data.prediction);
+        /*— Store both the raw prediction and the image —*/
+        localStorage.setItem('productName', data.prediction);
         localStorage.setItem('capturedImage', this.canvas.toDataURL('image/jpeg'));
-        /*-------------------------------------------------------------*/
-
-        resultText.textContent = `Predicted: ${data.prediction}`;
+        
+        // Get the friendly name from our mapping
+        const displayName = this.product_mapping[data.prediction.toLowerCase()] || data.prediction;
+        resultText.textContent = `Predicted: ${displayName}`;
+        
         this.showQuerySection(data.prediction);
       } else {
         resultText.textContent = `Error: ${data.error}`;
@@ -157,35 +174,50 @@ class VisionApp {
   showQuerySection(productName) {
     this.captureSection.style.display = 'none';
     this.querySection.style.display   = 'block';
-    this.productNameEl.textContent    = `Product: ${productName}`;
+    
+    // Apply the product mapping
+    const displayName = this.product_mapping[productName.toLowerCase()] || productName;
+    this.productNameEl.textContent = `Product: ${displayName}`;
   }
 
   async fetchQuery(queryType) {
-    const productName = this.productNameEl.textContent.replace('Product: ', '');
-    const language    = document.querySelector('input[name="language"]:checked')?.value || 'en';
-    this.queryResult.textContent = 'Loading…';
+    // Get the original product code from localStorage for API call
+    const productCode = localStorage.getItem('productName');
+    const language = this.currentLanguage;
+    
+    this.queryResult.textContent = language === 'es' ? 'Cargando...' : 'Loading...';
 
     try {
       const response = await fetch(`${API_URL}/query`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ product_name: productName, query_type: queryType, language })
+        body: JSON.stringify({ 
+          product_name: productCode, 
+          query_type: queryType, 
+          language 
+        })
       });
 
       const data = await response.json();
       if (data.success) {
         this.queryResult.innerHTML = `
-          <p>${queryType}: ${data.details}</p>
+          <p>${data.details}</p>
           <audio controls>
             <source src="${data.audio_url}" type="audio/mpeg">
-            Your browser does not support the audio element.
+            ${language === 'es' 
+              ? 'Su navegador no soporta el elemento de audio.'
+              : 'Your browser does not support the audio element.'}
           </audio>`;
       } else {
-        this.queryResult.textContent = `Error: ${data.error}`;
+        this.queryResult.textContent = language === 'es'
+          ? `Error: No se pudo obtener el resultado`
+          : `Error: Could not fetch query result`;
       }
     } catch (err) {
       console.error(err);
-      this.queryResult.textContent = 'Error: Could not fetch query result';
+      this.queryResult.textContent = language === 'es'
+        ? 'Error: No se pudo conectar al servidor'
+        : 'Error: Could not connect to server';
     }
   }
 
@@ -194,10 +226,11 @@ class VisionApp {
     this.video.classList.add('show');
     this.captureButton.style.display = 'inline-block';
     this.retakeButton.style.display  = 'none';
-    document.getElementById('result-text').textContent = 'Awaiting capture…';
+    document.getElementById('result-text').textContent = this.currentLanguage === 'es' 
+      ? 'Esperando captura...' 
+      : 'Awaiting capture...';
   }
 
-  // TL
   updateLanguage(language) {
     document.querySelectorAll('[data-lang-en]').forEach(el => {
       el.textContent = language === 'es' 
@@ -205,6 +238,7 @@ class VisionApp {
         : el.getAttribute('data-lang-en');
     });
     localStorage.setItem('language', language);
+    this.currentLanguage = language;
   }
 
   /* ---------- Listeners ----------------------------------------------------- */
@@ -218,6 +252,7 @@ class VisionApp {
     document.getElementById('allergen-btn').addEventListener('click', () => this.fetchQuery('allergen'));
     document.getElementById('price-btn')   .addEventListener('click', () => this.fetchQuery('price'));
     document.getElementById('go-back-btn') .addEventListener('click', () => this.goBack());
+    
     // language toggle listener
     document.getElementById('language-toggle').addEventListener('click', () => {
       this.currentLanguage = this.currentLanguage === 'en' ? 'es' : 'en';
