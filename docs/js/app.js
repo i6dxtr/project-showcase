@@ -16,10 +16,10 @@ class VisionApp {
     this.currentStream  = null;
 
     this.product_images = {
-      'product-a': '../stock/pb.png',
-      'product-b': '../stock/cookies.png',
-      'product-c': '../stock/salt.pngg',
-      'product-d': '../stock/cracker.png',
+      'product-a': '/docs/stock/pb.png',
+      'product-b': '/docs/stock/cookies.png',
+      'product-c': '/docs/stock/salt.png', // Fixed typo in .pngg
+      'product-d': '/docs/stock/cracker.png',
       // Add more mappings as needed
     };
 
