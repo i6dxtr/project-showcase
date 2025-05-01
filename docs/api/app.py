@@ -9,9 +9,15 @@ import sqlite3
 from googletrans import Translator
 import os
 
-
 app = Flask(__name__)
 CORS(app)
+
+LABEL_TO_PRODUCT = {
+    'peanut_butter': 'Kroger Creamy Peanut Butter',
+    'product-b': 'Great Value Twist and Shout Cookies',
+    'morton_salt': 'Morton Coarse Kosher Salt',
+    'olive_oil': 'Kroger Extra Virgin Olive Oil'
+}
 
 # Add root route handler
 @app.route('/')
@@ -110,7 +116,7 @@ def query():
     Handle product queries and return results with translations and TTS audio
     """
     try:
-        # Get and validate request data
+        # Validate request data
         data = request.json
         if not data:
             return jsonify(success=False, error="No data provided"), 400
@@ -122,117 +128,116 @@ def query():
         if not product_name or not query_type:
             return jsonify(success=False, error="Missing product_name or query_type"), 400
 
-        # Construct database path
-        db_path = os.path.join(os.path.dirname(__file__), '..', 'db', 'products.db')
-        print(f"Database path: {db_path}", file=sys.stderr)
+        print(f"Querying for product: {product_name}", file=sys.stderr)
+        print(f"Query type: {query_type}", file=sys.stderr)
+        print(f"Language: {language}", file=sys.stderr)
 
         # Connect to database
+        db_path = os.path.join(os.path.dirname(__file__), '..', 'db', 'products.db')
         connection = sqlite3.connect(db_path)
         cursor = connection.cursor()
 
-        # Select appropriate query based on type
-        if query_type == 'nutrition':
-            query = '''
-                SELECT 
-                    calories, total_fat, cholesterol, sodium, 
-                    total_carbs, fiber, sugar, protein
-                FROM nutritional_info
-                JOIN products ON products.id = nutritional_info.product_id
-                WHERE products.name = ?
-            '''
-            cursor.execute(query, (product_name,))
-            result = cursor.fetchone()
-            
-            if result:
-                detail_text = f"Calories: {result[0]}, Fat: {result[1]}, "
-                detail_text += f"Cholesterol: {result[2]}, Sodium: {result[3]}, "
-                detail_text += f"Carbs: {result[4]}, Fiber: {result[5]}, "
-                detail_text += f"Sugar: {result[6]}, Protein: {result[7]}"
-
-        elif query_type == 'allergen':
-            query = '''
-                SELECT allergy
-                FROM nutritional_info
-                JOIN products ON products.id = nutritional_info.product_id
-                WHERE products.name = ?
-            '''
-            cursor.execute(query, (product_name,))
-            result = cursor.fetchone()
-            
-            if result:
-                detail_text = f"Allergen Information: {result[0]}"
-
-        elif query_type == 'price':
-            query = '''
-                SELECT cost
-                FROM products
-                WHERE name = ?
-            '''
-            cursor.execute(query, (product_name,))
-            result = cursor.fetchone()
-            
-            if result:
-                detail_text = f"Price: ${result[0]:.2f}"
-
-        else:
-            connection.close()
-            return jsonify(success=False, error="Invalid query_type"), 400
-
-        connection.close()
-
-        if not result:
-            return jsonify(success=False, error="Product not found"), 404
-
-        # Translate if Spanish is requested
-        if language == 'es':
-            try:
-                translator = Translator()
-                detail_text = translator.translate(detail_text, src='en', dest='es').text
-            except Exception as e:
-                print(f"Translation error: {e}", file=sys.stderr)
-                # Continue with English if translation fails
-                pass
-
-        # Generate TTS audio
         try:
-            engine = pyttsx3.init()
-            
-            # Configure voice based on language
-            voices = engine.getProperty('voices')
-            if language == 'es':
-                spanish_voice = next((v for v in voices if 'spanish' in v.name.lower()), None)
-                if spanish_voice:
-                    engine.setProperty('voice', spanish_voice.id)
-            else:  # Default to English
-                english_voice = next((v for v in voices if 'english' in v.name.lower()), None)
-                if english_voice:
-                    engine.setProperty('voice', english_voice.id)
+            # Select appropriate query based on type
+            if query_type == 'nutrition':
+                cursor.execute('''
+                    SELECT 
+                        calories, total_fat, cholesterol, sodium, 
+                        total_carbs, fiber, sugar, protein
+                    FROM nutritional_info
+                    JOIN products ON products.id = nutritional_info.product_id
+                    WHERE products.name = ?
+                ''', (product_name,))
+                
+                result = cursor.fetchone()
+                if result:
+                    labels = ['Calories', 'Total Fat', 'Cholesterol', 'Sodium', 
+                             'Total Carbohydrates', 'Fiber', 'Sugar', 'Protein']
+                    detail_text = ', '.join(f"{label}: {value}" for label, value in zip(labels, result))
 
-            # Generate unique filename
-            filename = f"{product_name.replace(' ', '_')}_{query_type}_{language}.wav"
+            elif query_type == 'allergen':
+                cursor.execute('''
+                    SELECT allergy
+                    FROM nutritional_info
+                    JOIN products ON products.id = nutritional_info.product_id
+                    WHERE products.name = ?
+                ''', (product_name,))
+                
+                result = cursor.fetchone()
+                if result:
+                    detail_text = f"Allergen Information: {result[0]}"
+
+            elif query_type == 'price':
+                cursor.execute('''
+                    SELECT cost
+                    FROM products
+                    WHERE name = ?
+                ''', (product_name,))
+                
+                result = cursor.fetchone()
+                if result:
+                    detail_text = f"Price: ${result[0]:.2f}"
+
+            else:
+                return jsonify(success=False, error="Invalid query_type"), 400
+
+            if not result:
+                print(f"No results found for product: {product_name}", file=sys.stderr)
+                return jsonify(success=False, error="Product not found"), 404
+
+            # Translate if Spanish is requested
+            if language == 'es':
+                try:
+                    translator = Translator()
+                    detail_text = translator.translate(detail_text, src='en', dest='es').text
+                except Exception as e:
+                    print(f"Translation error: {e}", file=sys.stderr)
+                    # Continue with English if translation fails
+
+            # Generate audio filename
+            safe_product_name = "".join(x for x in product_name if x.isalnum() or x in (' ', '_'))
+            filename = f"{safe_product_name}_{query_type}_{language}.wav"
             audio_path = os.path.join('static', filename)
             
-            # Create static directory if it doesn't exist
+            # Ensure static directory exists
             os.makedirs('static', exist_ok=True)
-            
-            # Generate audio file
-            engine.save_to_file(detail_text, audio_path)
-            engine.runAndWait()
 
-            return jsonify({
-                'success': True,
-                'details': detail_text,
-                'audio_url': f"/static/{filename}"
-            })
+            # Generate TTS audio
+            try:
+                engine = pyttsx3.init()
+                
+                # Set voice based on language
+                voices = engine.getProperty('voices')
+                if language == 'es':
+                    spanish_voice = next((v for v in voices if 'spanish' in v.name.lower()), None)
+                    if spanish_voice:
+                        engine.setProperty('voice', spanish_voice.id)
+                else:
+                    english_voice = next((v for v in voices if 'english' in v.name.lower()), None)
+                    if english_voice:
+                        engine.setProperty('voice', english_voice.id)
 
-        except Exception as e:
-            print(f"TTS error: {e}", file=sys.stderr)
-            # Return text only if audio generation fails
-            return jsonify({
-                'success': True,
-                'details': detail_text,
-                'error': "Audio generation failed"
-            })
+                # Generate audio file
+                engine.save_to_file(detail_text, audio_path)
+                engine.runAndWait()
+
+                return jsonify({
+                    'success': True,
+                    'details': detail_text,
+                    'audio_url': f"/static/{filename}"
+                })
+
+            except Exception as e:
+                print(f"TTS error: {e}", file=sys.stderr)
+                # Return text only if audio fails
+                return jsonify({
+                    'success': True,
+                    'details': detail_text,
+                    'error': "Audio generation failed"
+                })
+
+        finally:
+            connection.close()
 
     except Exception as e:
         print(f"Query error: {e}", file=sys.stderr)

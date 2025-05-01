@@ -11,6 +11,14 @@ import traceback
 app = Flask(__name__)
 CORS(app)
 
+LABEL_TO_PRODUCT = {
+    'peanut_butter': 'Kroger Creamy Peanut Butter',
+    'product-b': 'Great Value Twist and Shout Cookies',
+    'morton_salt': 'Morton Coarse Kosher Salt',
+    'olive_oil': 'Kroger Extra Virgin Olive Oil'
+}
+
+
 # Define the model 
 try:
     MODEL_PATH = '../../lib_mdl/my_product_classifier_BETTER.h5'
@@ -34,14 +42,13 @@ def index():
     response.headers['Content-Type'] = 'application/json'
     return response
 
-@app.route('/predict', methods=['POST'])
 def predict():
     print("/predict called", file=sys.stderr)
     try:
+        # Validate input
         file = request.files.get('image')
         if not file:
             return jsonify(success=False, error="No image file provided"), 400
-
 
         # Convert file to OpenCV format
         data = np.frombuffer(file.read(), np.uint8)
@@ -57,11 +64,24 @@ def predict():
         # Make prediction
         preds = model.predict(batch)
         idx = str(np.argmax(preds, axis=1)[0])
-        label = index_to_class.get(idx, "unknown")
+        raw_label = index_to_class.get(idx, "unknown")
+        
+        # Map raw label to product name
+        product_name = LABEL_TO_PRODUCT.get(raw_label, raw_label)
+        
+        # Log prediction details
+        print(f"Raw label: {raw_label}", file=sys.stderr)
+        print(f"Mapped to product: {product_name}", file=sys.stderr)
 
-        response = make_response(jsonify(success=True, prediction=label))
-        response.headers['Content-Type'] = 'application/json'
-        return jsonify(success=True, prediction=label)
+        # Return prediction result
+        if product_name == "unknown":
+            return jsonify(success=False, error="Could not classify image"), 400
+
+        return jsonify(
+            success=True,
+            prediction=product_name,
+            raw_label=raw_label  # Helpful for debugging
+        )
 
     except Exception as e:
         print(f"Error in prediction: {str(e)}", file=sys.stderr)
