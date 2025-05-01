@@ -27,7 +27,7 @@ class VisionApp {
       'product-a': 'Kroger Creamy Peanut Butter',
       'product-b': 'Great Value Twist and Shout Cookies',
       'product-c': 'Morton Coarse Kosher Salt',
-      'product-d': 'Kroger Extra Virgin Olive Oil',
+      'product-d': 'Unknown Product',
       // Add more mappings as needed
     };
 
@@ -36,7 +36,7 @@ class VisionApp {
       'Kroger Creamy Peanut Butter': 'Mantequilla de Maní Cremosa Kroger',
       'Great Value Twist and Shout Cookies': 'Galletas Twist and Shout Great Value',
       'Morton Coarse Kosher Salt': 'Sal Kosher Gruesa Morton',
-      'Kroger Extra Virgin Olive Oil': 'Aceite de Oliva Extra Virgen Kroger'
+      'Unknown Product': 'Producto Desconocido'
       // Add more translations as needed
     };
 
