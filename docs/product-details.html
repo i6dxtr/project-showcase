@@ -88,6 +88,8 @@
       // Get stored values
       const storedProductCode = localStorage.getItem('rawProductCode') || localStorage.getItem('productName');
       let currentLanguage = localStorage.getItem('language') || 'en';
+      let currentAudio = null;
+      let isAudioLoading = false;
 
       // Update all translations
       const updateLanguage = (lang) => {
@@ -144,6 +146,16 @@
       document.getElementById('language-toggle').addEventListener('click', () => {
         currentLanguage = currentLanguage === 'en' ? 'es' : 'en';
         updateLanguage(currentLanguage);
+        
+        // Refresh query if active
+        const activeButton = ['nutrition-btn', 'allergen-btn', 'price-btn'].find(
+          id => document.getElementById(id).classList.contains('active')
+        );
+        
+        if (activeButton) {
+          const queryType = activeButton.replace('-btn', '');
+          fetchQuery(queryType);
+        }
       });
 
       // Query helpers
@@ -151,6 +163,27 @@
       queryResult.style.display = 'none';  // Hide initially
 
       const fetchQuery = async (queryType) => {
+        // If audio is still loading from a previous request, cancel it
+        if (isAudioLoading) {
+          console.log('Cancelling previous audio request');
+          isAudioLoading = false;
+          
+          // Stop any currently playing audio
+          if (currentAudio) {
+            try {
+              currentAudio.pause();
+              currentAudio.removeAttribute('src');
+              currentAudio.load();
+            } catch (e) {
+              console.warn('Error stopping previous audio:', e);
+            }
+            currentAudio = null;
+          }
+        }
+        
+        // Set loading state
+        isAudioLoading = true;
+        
         queryResult.style.display = 'block';
         queryResult.textContent = currentLanguage === 'es' ? 'Cargando...' : 'Loading...';
 
@@ -165,35 +198,151 @@
             })
           });
 
+          // Check if this request was cancelled by a new one
+          if (!isAudioLoading) {
+            console.log('Request was cancelled, ignoring response');
+            return;
+          }
+
           const data = await response.json();
           if (data.success) {
             // Display details and audio player
             queryResult.innerHTML = `
               <p>${data.details}</p>
-              <audio controls autoplay>
-                <source src="${API_URL}${data.audio_url}" type="audio/mp3">
-                ${currentLanguage === 'es' 
-                  ? 'Su navegador no soporta el elemento de audio.'
-                  : 'Your browser does not support the audio element.'}
-              </audio>`;
+              ${data.audio_url ? `
+                <div class="audio-container">
+                  <audio controls>
+                    <source src="${API_URL}${data.audio_url}" type="audio/mp3">
+                    ${currentLanguage === 'es' 
+                      ? 'Su navegador no soporta el elemento de audio.'
+                      : 'Your browser does not support the audio element.'}
+                  </audio>
+                  <button class="btn btn-sm btn-secondary mt-2 play-audio-btn">
+                    ${currentLanguage === 'es' ? 'Reproducir' : 'Play Audio'}
+                  </button>
+                </div>
+              ` : ''}`;
+            
+            // Handle audio element properly
+            const audioElement = queryResult.querySelector('audio');
+            if (audioElement) {
+              currentAudio = audioElement;
+              
+              // Set up error handling
+              audioElement.onerror = (e) => {
+                console.error('Audio playback error:', e);
+                const errorMsg = currentLanguage === 'es'
+                  ? 'Error al reproducir el audio. Por favor, inténtelo de nuevo.'
+                  : 'Error playing audio. Please try again.';
+                queryResult.querySelector('.audio-container').innerHTML += `<p class="text-danger">${errorMsg}</p>`;
+              };
+              
+              // Set up play button that safely plays audio
+              const playButton = queryResult.querySelector('.play-audio-btn');
+              if (playButton) {
+                playButton.addEventListener('click', () => {
+                  try {
+                    const playPromise = audioElement.play();
+                    
+                    if (playPromise !== undefined) {
+                      playPromise.then(_ => {
+                        // Playback started successfully
+                        console.log('Audio playback started');
+                      })
+                      .catch(err => {
+                        // Auto-play was prevented or other error
+                        console.warn('Audio playback error:', err);
+                        if (err.name === 'AbortError') {
+                          console.log('Playback was aborted, likely due to navigation or element removal');
+                        }
+                      });
+                    }
+                  } catch (e) {
+                    console.error('Error attempting to play audio:', e);
+                  }
+                });
+              }
+              
+              // Try to play audio but handle errors gracefully
+              try {
+                const playPromise = audioElement.play();
+                if (playPromise !== undefined) {
+                  playPromise.catch(err => {
+                    console.warn('Auto-play was prevented:', err);
+                    // Auto-play prevention is common, so we don't show an error message
+                  });
+                }
+              } catch (e) {
+                console.warn('Error during auto-play attempt:', e);
+              }
+            }
           } else {
             queryResult.textContent = currentLanguage === 'es'
               ? `Error: No se pudo obtener el resultado`
               : `Error: Could not fetch query result`;
           }
         } catch (err) {
-          console.error(err);
-          queryResult.textContent = currentLanguage === 'es'
-            ? 'Error: No se pudo conectar al servidor'
-            : 'Error: Could not connect to server';
+          // Only show error if this request wasn't cancelled
+          if (isAudioLoading) {
+            console.error(err);
+            queryResult.textContent = currentLanguage === 'es'
+              ? 'Error: No se pudo conectar al servidor'
+              : 'Error: Could not connect to server';
+          }
+        } finally {
+          // Clear loading state
+          isAudioLoading = false;
         }
       };
 
+      // Add active class management for buttons
+      const queryButtons = ['nutrition-btn', 'allergen-btn', 'price-btn'];
+      
+      queryButtons.forEach(btnId => {
+        const btn = document.getElementById(btnId);
+        btn.addEventListener('click', () => {
+          // Remove active class from all buttons
+          queryButtons.forEach(id => document.getElementById(id).classList.remove('active'));
+          // Add active class to clicked button
+          btn.classList.add('active');
+          
+          // Get query type from button ID
+          const queryType = btnId.replace('-btn', '');
+          fetchQuery(queryType);
+        });
+      });
+
       // Event listeners
-      document.getElementById('nutrition-btn').addEventListener('click', () => fetchQuery('nutrition'));
-      document.getElementById('allergen-btn').addEventListener('click', () => fetchQuery('allergen'));
-      document.getElementById('price-btn').addEventListener('click', () => fetchQuery('price'));
-      document.getElementById('go-back-btn').addEventListener('click', () => window.location.href = 'index.html');
+      document.getElementById('nutrition-btn').addEventListener('click', () => {});
+      document.getElementById('allergen-btn').addEventListener('click', () => {});
+      document.getElementById('price-btn').addEventListener('click', () => {});
+      
+      document.getElementById('go-back-btn').addEventListener('click', () => {
+        // Stop any audio that might be playing
+        if (currentAudio) {
+          try {
+            currentAudio.pause();
+            currentAudio.removeAttribute('src');
+            currentAudio.load();
+          } catch (e) {
+            console.warn('Error stopping audio on go back:', e);
+          }
+          currentAudio = null;
+        }
+        
+        window.location.href = 'index.html';
+      });
+      
+      // Handle page visibility changes to prevent audio errors
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'hidden' && currentAudio) {
+          try {
+            currentAudio.pause();
+          } catch (e) {
+            console.warn('Error pausing audio on page hide:', e);
+          }
+        }
+      });
     });
   </script>
 </body>

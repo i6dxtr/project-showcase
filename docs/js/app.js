@@ -1,4 +1,4 @@
-/* app.js - Complete Version with Spanish Translation Support and gTTS compatibility */
+/* app.js - Fixed version with AbortError handling for audio playback */
 const API_URL = "https://cd4d-75-187-72-180.ngrok-free.app";
 
 class VisionApp {
@@ -14,6 +14,8 @@ class VisionApp {
     this.productNameEl  = document.getElementById('product-name');
     this.queryResult    = document.getElementById('query-result');
     this.currentStream  = null;
+    this.isAudioLoading = false;  // Track audio loading state
+    this.currentAudio   = null;   // Track current audio element
 
     this.product_images = {
       'product-a': './stock/pb.png',
@@ -233,8 +235,28 @@ class VisionApp {
     `;
 }
 
-
 async fetchQuery(queryType) {
+  // If audio is still loading from a previous request, cancel it
+  if (this.isAudioLoading) {
+    console.log('Cancelling previous audio request');
+    this.isAudioLoading = false;
+    
+    // Stop any currently playing audio
+    if (this.currentAudio) {
+      try {
+        this.currentAudio.pause();
+        this.currentAudio.removeAttribute('src');
+        this.currentAudio.load();
+      } catch (e) {
+        console.warn('Error stopping previous audio:', e);
+      }
+      this.currentAudio = null;
+    }
+  }
+  
+  // Set loading state
+  this.isAudioLoading = true;
+  
   const productCode = localStorage.getItem('rawProductCode') || localStorage.getItem('productName');
   const language = this.currentLanguage;
   
@@ -242,57 +264,114 @@ async fetchQuery(queryType) {
   this.queryResult.textContent = language === 'es' ? 'Cargando...' : 'Loading...';
 
   try {
-      const response = await fetch(`${API_URL}/query`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-              product_name: productCode,
-              query_type: queryType, 
-              language 
-          })
-      });
+    const response = await fetch(`${API_URL}/query`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+          product_name: productCode,
+          query_type: queryType, 
+          language 
+      })
+    });
 
-      const data = await response.json();
-      if (data.success) {
-          let html = `<p>${data.details}</p>`;
-          
-          if (data.audio_url) {
-              html += `
-                  <div class="audio-container">
-                      <audio controls autoplay>
-                          <source src="${API_URL}${data.audio_url}" type="audio/mp3">
-                          ${language === 'es' 
-                              ? 'Su navegador no soporta el elemento de audio.'
-                              : 'Your browser does not support the audio element.'}
-                      </audio>
-                      <button class="btn btn-sm btn-secondary mt-2" onclick="document.querySelector('audio').play()">
-                          ${language === 'es' ? 'Reproducir' : 'Play Again'}
-                      </button>
-                  </div>
-              `;
-          }
-          
-          this.queryResult.innerHTML = html;
+    // Check if this request was cancelled by a new one
+    if (!this.isAudioLoading) {
+      console.log('Request was cancelled, ignoring response');
+      return;
+    }
 
-          // Auto-play handling
-          const audioElement = this.queryResult.querySelector('audio');
-          if (audioElement) {
-              audioElement.onerror = (e) => {
-                  console.error('Audio playback error:', e);
-                  // Remove audio player if there's an error
-                  audioElement.parentElement.remove();
-              };
-          }
-      } else {
-          this.queryResult.textContent = language === 'es'
-              ? `Error: No se pudo obtener el resultado`
-              : `Error: Could not fetch query result`;
+    const data = await response.json();
+    if (data.success) {
+      let html = `<p>${data.details}</p>`;
+      
+      if (data.audio_url) {
+        html += `
+          <div class="audio-container">
+            <audio controls>
+              <source src="${API_URL}${data.audio_url}" type="audio/mp3">
+              ${language === 'es' 
+                ? 'Su navegador no soporta el elemento de audio.'
+                : 'Your browser does not support the audio element.'}
+            </audio>
+            <button class="btn btn-sm btn-secondary mt-2 play-audio-btn">
+              ${language === 'es' ? 'Reproducir' : 'Play Audio'}
+            </button>
+          </div>
+        `;
       }
+      
+      this.queryResult.innerHTML = html;
+
+      // Handle audio element properly
+      const audioElement = this.queryResult.querySelector('audio');
+      if (audioElement) {
+        this.currentAudio = audioElement;
+        
+        // Set up error handling
+        audioElement.onerror = (e) => {
+          console.error('Audio playback error:', e);
+          const errorMsg = language === 'es'
+            ? 'Error al reproducir el audio. Por favor, inténtelo de nuevo.'
+            : 'Error playing audio. Please try again.';
+          this.queryResult.querySelector('.audio-container').innerHTML += `<p class="text-danger">${errorMsg}</p>`;
+        };
+        
+        // Set up play button that safely plays audio
+        const playButton = this.queryResult.querySelector('.play-audio-btn');
+        if (playButton) {
+          playButton.addEventListener('click', () => {
+            try {
+              const playPromise = audioElement.play();
+              
+              if (playPromise !== undefined) {
+                playPromise.then(_ => {
+                  // Playback started successfully
+                  console.log('Audio playback started');
+                })
+                .catch(err => {
+                  // Auto-play was prevented or other error
+                  console.warn('Audio playback error:', err);
+                  if (err.name === 'AbortError') {
+                    console.log('Playback was aborted, likely due to navigation or element removal');
+                  }
+                });
+              }
+            } catch (e) {
+              console.error('Error attempting to play audio:', e);
+            }
+          });
+        }
+        
+        // Try to play audio but handle errors gracefully
+        try {
+          const playPromise = audioElement.play();
+          if (playPromise !== undefined) {
+            playPromise.catch(err => {
+              console.warn('Auto-play was prevented:', err);
+              // Auto-play prevention is common, so we don't show an error message
+            });
+          }
+        } catch (e) {
+          console.warn('Error during auto-play attempt:', e);
+        }
+      }
+      
+    } else {
+      this.queryResult.textContent = language === 'es'
+        ? `Error: No se pudo obtener el resultado`
+        : `Error: Could not fetch query result`;
+    }
   } catch (err) {
+    // Only show error if this request wasn't cancelled
+    if (this.isAudioLoading) {
       console.error(err);
       this.queryResult.textContent = language === 'es'
-          ? 'Error: No se pudo conectar al servidor'
-          : 'Error: Could not connect to server';
+        ? 'Error: No se pudo conectar al servidor'
+        : 'Error: Could not connect to server';
+    }
+  } finally {
+    // Clear loading state
+    this.isAudioLoading = false;
   }
 }
 
@@ -382,9 +461,32 @@ async fetchQuery(queryType) {
       this.currentLanguage = this.currentLanguage === 'en' ? 'es' : 'en';
       this.updateLanguage(this.currentLanguage);
     });
+    
+    // Handle page visibility changes to prevent audio errors
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden' && this.currentAudio) {
+        try {
+          this.currentAudio.pause();
+        } catch (e) {
+          console.warn('Error pausing audio on page hide:', e);
+        }
+      }
+    });
   }
 
   goBack() {
+    // Stop any audio that might be playing
+    if (this.currentAudio) {
+      try {
+        this.currentAudio.pause();
+        this.currentAudio.removeAttribute('src');
+        this.currentAudio.load();
+      } catch (e) {
+        console.warn('Error stopping audio on go back:', e);
+      }
+      this.currentAudio = null;
+    }
+    
     this.querySection.style.display = 'none';
     this.captureSection.style.display = 'block';
     
