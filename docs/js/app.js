@@ -215,7 +215,7 @@ class VisionApp {
     this.querySection.style.display = 'block';
     
     // Apply the product mapping to get friendly name
-    const displayName = this.product_mapping[productCode.toLowerCase()] || productCode;
+    const displayName = this.product_mapping[productCode.toLowerCase()] || 'Unknown Product';
     
     // Translate product name if Spanish is selected
     let translatedName = displayName;
@@ -224,16 +224,16 @@ class VisionApp {
     }
     
     // Get the image path
-    const imagePath = this.product_images[productCode.toLowerCase()] || '/images/default-product.jpg';
+    const imagePath = this.product_images[productCode.toLowerCase()];
     
-    // Create the product display with image and name
+    // Create the product display with image only if we have a valid product match
     this.productNameEl.innerHTML = `
         <div class="product-display">
-            <img src="${imagePath}" alt="${translatedName}" class="product-image">
+            ${imagePath ? `<img src="${imagePath}" alt="${translatedName}" class="product-image">` : ''}
             <p>${this.currentLanguage === 'es' ? 'Producto: ' : 'Product: '} ${translatedName}</p>
         </div>
     `;
-  }
+}
 
 
   async fetchQuery(queryType) {
