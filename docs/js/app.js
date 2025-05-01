@@ -8,6 +8,10 @@ class VisionApp {
     this.retakeButton = document.getElementById('retake');
     this.resultDiv = document.getElementById('result');
     this.cameraSelect = document.getElementById('camera-select');
+    this.querySection = document.getElementById('query-section');
+    this.captureSection = document.getElementById('capture-section');
+    this.productName = document.getElementById('product-name');
+    this.queryResult = document.getElementById('query-result');
     this.currentStream = null;
 
     this.setupEventListeners();
@@ -117,13 +121,55 @@ class VisionApp {
       formData.append('image', blob);
       const resp = await fetch(`${API_URL}/predict`, { method: 'POST', body: formData });
       const data = await resp.json();
-      resultText.textContent = `Predicted: ${data.prediction}`;
+
+      if (data.success) {
+        resultText.textContent = `Predicted: ${data.prediction}`;
+        this.showQuerySection(data.prediction);
+      } else {
+        resultText.textContent = `Error: ${data.error}`;
+      }
     } catch (err) {
       console.error(err);
       resultText.textContent = 'Error: Could not connect to server';
     } finally {
       spinner.style.display = 'none';
       this.captureButton.disabled = false;
+    }
+  }
+
+  showQuerySection(productName) {
+    this.captureSection.style.display = 'none';
+    this.querySection.style.display = 'block';
+    this.productName.textContent = `Product: ${productName}`;
+  }
+
+  async fetchQuery(queryType) {
+    const productName = this.productName.textContent.replace('Product: ', '');
+    const language = document.querySelector('input[name="language"]:checked').value || 'en';
+    this.queryResult.textContent = 'Loading...';
+
+    try {
+      const response = await fetch(`${API_URL}/query`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ product_name: productName, query_type: queryType, language })
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        this.queryResult.innerHTML = `
+          <p>${queryType}: ${data.details}</p>
+          <audio controls>
+            <source src="${data.audio_url}" type="audio/mpeg">
+            Your browser does not support the audio element.
+          </audio>
+        `;
+      } else {
+        this.queryResult.textContent = `Error: ${data.error}`;
+      }
+    } catch (err) {
+      console.error(err);
+      this.queryResult.textContent = 'Error: Could not fetch query result';
     }
   }
 
@@ -141,6 +187,15 @@ class VisionApp {
     this.cameraSelect.addEventListener('change', () => {
       this.initializeCamera(this.cameraSelect.value);
     });
+    document.getElementById('nutrition-btn').addEventListener('click', () => this.fetchQuery('nutrition'));
+    document.getElementById('allergen-btn').addEventListener('click', () => this.fetchQuery('allergen'));
+    document.getElementById('price-btn').addEventListener('click', () => this.fetchQuery('price'));
+    document.getElementById('go-back-btn').addEventListener('click', () => this.goBack());
+  }
+
+  goBack() {
+    this.querySection.style.display = 'none';
+    this.captureSection.style.display = 'block';
   }
 }
 
