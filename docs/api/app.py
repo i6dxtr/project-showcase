@@ -114,8 +114,12 @@ def query():
         if not product_name or not query_type:
             return jsonify(success=False, error="Missing product_name or query_type"), 400
 
+        # Construct the absolute path to the database
+        db_path = os.path.join(os.path.dirname(__file__), '..', 'db', 'products.db')
+        print(f"Database path: {db_path}", file=sys.stderr)
+
         # Query the database
-        connection = sqlite3.connect('products.db')
+        connection = sqlite3.connect(db_path)
         cursor = connection.cursor()
 
         if query_type == 'nutrition':
