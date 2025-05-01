@@ -239,6 +239,58 @@ def query():
         return jsonify(success=False, error=str(e)), 500
     
 
+def test_db_connection():
+    """Test database connection and contents"""
+    try:
+        db_path = os.path.join(os.path.dirname(__file__), '..', 'db', 'products.db')
+        print(f"\nTesting database at: {db_path}", file=sys.stderr)
+        
+        if not os.path.exists(db_path):
+            print("❌ Database file not found!", file=sys.stderr)
+            return
+            
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        
+        # Test 1: Check tables exist
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
+        tables = cursor.fetchall()
+        print("\nTables in database:", file=sys.stderr)
+        for table in tables:
+            print(f"- {table[0]}", file=sys.stderr)
+            
+        # Test 2: Check products
+        cursor.execute("SELECT * FROM products;")
+        products = cursor.fetchall()
+        print("\nProducts in database:", file=sys.stderr)
+        for product in products:
+            print(f"- ID: {product[0]}, Name: {product[1]}, Cost: ${product[2]}", file=sys.stderr)
+            
+        # Test 3: Check nutritional info
+        cursor.execute("""
+            SELECT p.name, n.calories, n.allergy 
+            FROM products p 
+            JOIN nutritional_info n ON p.id = n.product_id;
+        """)
+        nutrition = cursor.fetchall()
+        print("\nNutritional info:", file=sys.stderr)
+        for item in nutrition:
+            print(f"- {item[0]}: {item[1]} calories, Allergens: {item[2]}", file=sys.stderr)
+            
+        conn.close()
+        print("\n✅ Database connection successful!", file=sys.stderr)
+        
+    except sqlite3.Error as e:
+        print(f"\n❌ Database error: {e}", file=sys.stderr)
+    except Exception as e:
+        print(f"\n❌ Unexpected error: {e}", file=sys.stderr)
+
+# Add this route to test the database
+@app.route('/test-db', methods=['GET'])
+def test_db():
+    test_db_connection()
+    return jsonify({"message": "Check server logs for database test results"})
+
 # Add route to serve static files
 @app.route('/static/<path:filename>')
 def serve_static(filename):
@@ -246,6 +298,7 @@ def serve_static(filename):
 
 if __name__ == '__main__':
     # Create static directory if it doesn't exist
+    test_db_connection()  # Test DB before starting server
     if not os.path.exists('static'):
         os.makedirs('static')
     app.run(host='0.0.0.0', port=5000, debug=True)
