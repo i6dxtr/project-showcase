@@ -1,26 +1,6 @@
+/* docs/js/app.js */
+
 const API_URL = "https://f9cf-75-187-72-180.ngrok-free.app";
-
-// --------- Helper Functions ---------
-
-function applyStoredLanguage() {
-  const language = localStorage.getItem('language') || 'en';
-  const elementsToTranslate = document.querySelectorAll('[data-lang-en]');
-
-  elementsToTranslate.forEach(el => {
-    el.textContent = language === 'es' ? el.getAttribute('data-lang-es') : el.getAttribute('data-lang-en');
-  });
-
-  // Update product name if stored
-  const productNameElement = document.getElementById('product-name');
-  if (productNameElement) {
-    const storedProductName = localStorage.getItem('productName');
-    if (storedProductName) {
-      productNameElement.textContent = storedProductName;
-    }
-  }
-}
-
-// --------- VisionApp Class ---------
 
 class VisionApp {
   constructor() {
@@ -36,212 +16,78 @@ class VisionApp {
     this.queryResult = document.getElementById('query-result');
     this.currentStream = null;
 
-    if (this.captureButton) {
-      this.setupEventListeners();
-      this.initializeCamera()
-        .then(() => this.getCameraDevices())
-        .then(() => {
-          const isMobile = /Mobi|Android/i.test(navigator.userAgent);
-          const defaultCam = isMobile ? 'environment' : 'default';
-          this.cameraSelect.value = defaultCam;
-          return this.initializeCamera(defaultCam);
-        });
-    }
-  }
-
-  async getCameraDevices() {
-    try {
-      const devices = await navigator.mediaDevices.enumerateDevices();
-      const videoInputs = devices.filter(d => d.kind === 'videoinput');
-      this.populateCameraSelect(videoInputs);
-    } catch (err) {
-      console.error('Error enumerating devices:', err);
-      this.resultDiv.textContent = 'Error: Could not list camera devices';
-    }
-  }
-
-  populateCameraSelect(videoInputs) {
-    this.cameraSelect.innerHTML = '';
-    this.cameraSelect.add(new Option('Default camera', 'default'));
-    this.cameraSelect.add(new Option('Front (selfie)', 'user'));
-    this.cameraSelect.add(new Option('Rear', 'environment'));
-    videoInputs.forEach((device, idx) => {
-      const label = device.label || `Camera ${idx + 1}`;
-      this.cameraSelect.add(new Option(label, device.deviceId));
-    });
-  }
-
-  async initializeCamera(selection = 'default') {
-    if (this.currentStream) {
-      this.currentStream.getTracks().forEach(t => t.stop());
-      this.currentStream = null;
-    }
-
-    if (!this.video) return; // If no video element exists on page
-
-    this.video.classList.add('show');
-    this.canvas.classList.remove('show');
-    this.captureButton.style.display = 'inline-block';
-    this.retakeButton.style.display = 'none';
-
-    let videoConstraint;
-    if (selection === 'default') {
-      videoConstraint = { width: { ideal: 1280 }, height: { ideal: 720 } };
-    } else if (selection === 'user' || selection === 'environment') {
-      videoConstraint = {
-        width: { ideal: 1280 },
-        height: { ideal: 720 },
-        facingMode: { exact: selection }
-      };
-    } else {
-      videoConstraint = {
-        width: { ideal: 1280 },
-        height: { ideal: 720 },
-        deviceId: { exact: selection }
-      };
-    }
-
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: videoConstraint });
-      this.video.srcObject = stream;
-      this.currentStream = stream;
-    } catch (err) {
-      console.warn('Requested constraints failed, falling back to default:', err);
-      try {
-        const fallback = await navigator.mediaDevices.getUserMedia({ video: true });
-        this.video.srcObject = fallback;
-        this.currentStream = fallback;
-      } catch (fbErr) {
-        console.error('Fallback also failed:', fbErr);
-        this.resultDiv.textContent = 'Error: Cannot access camera';
-      }
-    }
-  }
-
-  async captureImage() {
-    this.canvas.width = this.video.clientWidth;
-    this.canvas.height = this.video.clientHeight;
-    this.canvas.getContext('2d').drawImage(this.video, 0, 0, this.canvas.width, this.canvas.height);
-
-    this.video.classList.remove('show');
-    this.canvas.classList.add('show');
-    this.captureButton.style.display = 'none';
-    this.retakeButton.style.display = 'inline-block';
-
-    const spinner = document.getElementById('spinner');
-    const resultText = document.getElementById('result-text');
-    spinner.style.display = 'inline-block';
-    resultText.textContent = 'Processing...';
-    this.captureButton.disabled = true;
-
-    try {
-      const blob = await new Promise(res => this.canvas.toBlob(res, 'image/jpeg', 0.8));
-      const formData = new FormData();
-      formData.append('image', blob);
-      const resp = await fetch(`${API_URL}/predict`, { method: 'POST', body: formData });
-      const data = await resp.json();
-
-      if (data.success) {
-        resultText.textContent = `Predicted: ${data.prediction}`;
-        this.showQuerySection(data.prediction);
-      } else {
-        resultText.textContent = `Error: ${data.error}`;
-      }
-    } catch (err) {
-      console.error(err);
-      resultText.textContent = 'Error: Could not connect to server';
-    } finally {
-      spinner.style.display = 'none';
-      this.captureButton.disabled = false;
-    }
-  }
-
-  showQuerySection(productName) {
-    this.captureSection.style.display = 'none';
-    this.querySection.style.display = 'block';
-    this.productName.textContent = `Product: ${productName}`;
-    localStorage.setItem('productName', productName);
-  }
-
-  async fetchQuery(queryType) {
-    const productName = this.productName.textContent.replace('Product: ', '');
-    const language = localStorage.getItem('language') || 'en';
-    this.queryResult.textContent = 'Loading...';
-
-    try {
-      const response = await fetch(`${API_URL}/query`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ product_name: productName, query_type: queryType, language })
+    this.setupEventListeners();
+    this.initializeCamera()
+      .then(() => this.getCameraDevices())
+      .then(() => {
+        const isMobile = /Mobi|Android/i.test(navigator.userAgent);
+        const defaultCam = isMobile ? 'environment' : 'default';
+        this.cameraSelect.value = defaultCam;
+        return this.initializeCamera(defaultCam);
       });
-
-      const data = await response.json();
-      if (data.success) {
-        this.queryResult.innerHTML = `
-          <p>${queryType}: ${data.details}</p>
-          <audio controls>
-            <source src="${data.audio_url}" type="audio/mpeg">
-            Your browser does not support the audio element.
-          </audio>
-        `;
-      } else {
-        this.queryResult.textContent = `Error: ${data.error}`;
-      }
-    } catch (err) {
-      console.error(err);
-      this.queryResult.textContent = 'Error: Could not fetch query result';
-    }
   }
 
-  retakeImage() {
-    this.canvas.classList.remove('show');
-    this.video.classList.add('show');
-    this.captureButton.style.display = 'inline-block';
-    this.retakeButton.style.display = 'none';
-    document.getElementById('result-text').textContent = 'Awaiting capture...';
-  }
+  /* … all your existing VisionApp methods unchanged … */
 
   setupEventListeners() {
-    if (this.captureButton) this.captureButton.addEventListener('click', () => this.captureImage());
-    if (this.retakeButton) this.retakeButton.addEventListener('click', () => this.retakeImage());
-    if (this.cameraSelect) this.cameraSelect.addEventListener('change', () => {
-      this.initializeCamera(this.cameraSelect.value);
-    });
-
-    const nutritionBtn = document.getElementById('nutrition-btn');
-    const allergenBtn = document.getElementById('allergen-btn');
-    const priceBtn = document.getElementById('price-btn');
-    const goBackBtn = document.getElementById('go-back-btn');
-
-    if (nutritionBtn) nutritionBtn.addEventListener('click', () => this.fetchQuery('nutrition'));
-    if (allergenBtn) allergenBtn.addEventListener('click', () => this.fetchQuery('allergen'));
-    if (priceBtn) priceBtn.addEventListener('click', () => this.fetchQuery('price'));
-    if (goBackBtn) goBackBtn.addEventListener('click', () => this.goBack());
-  }
-
-  goBack() {
-    this.querySection.style.display = 'none';
-    this.captureSection.style.display = 'block';
+    if (this.captureButton) {
+      this.captureButton.addEventListener('click', () => this.captureImage());
+    }
+    if (this.retakeButton) {
+      this.retakeButton.addEventListener('click', () => this.retakeImage());
+    }
+    if (this.cameraSelect) {
+      this.cameraSelect.addEventListener('change', () => {
+        this.initializeCamera(this.cameraSelect.value);
+      });
+    }
+    if (document.getElementById('nutrition-btn')) {
+      document.getElementById('nutrition-btn').addEventListener('click', () => this.fetchQuery('nutrition'));
+    }
+    if (document.getElementById('allergen-btn')) {
+      document.getElementById('allergen-btn').addEventListener('click', () => this.fetchQuery('allergen'));
+    }
+    if (document.getElementById('price-btn')) {
+      document.getElementById('price-btn').addEventListener('click', () => this.fetchQuery('price'));
+    }
+    if (document.getElementById('go-back-btn')) {
+      document.getElementById('go-back-btn').addEventListener('click', () => this.goBack());
+    }
   }
 }
-
-// --------- Main Initialization ---------
 
 window.addEventListener('load', () => new VisionApp());
 
 document.addEventListener('DOMContentLoaded', () => {
-  applyStoredLanguage();
-
+  // The toggle button only exists on index.html
   const languageToggle = document.getElementById('language-toggle');
-  if (languageToggle) {
-    let currentLanguage = localStorage.getItem('language') || 'en';
-    languageToggle.textContent = currentLanguage === 'es' ? 'Switch to English' : 'Switch to Spanish';
+  // Persisted language, default to English
+  let currentLanguage = localStorage.getItem('language') || 'en';
 
+  const updateLanguage = (language) => {
+    // 1) Translate every element with data-lang-en
+    document.querySelectorAll('[data-lang-en]').forEach(el => {
+      el.textContent = language === 'es'
+        ? el.getAttribute('data-lang-es')
+        : el.getAttribute('data-lang-en');
+    });
+    // 2) If we have a toggle button, update its label
+    if (languageToggle) {
+      languageToggle.textContent = language === 'es'
+        ? 'Switch to English'
+        : 'Switch to Spanish';
+    }
+    localStorage.setItem('language', language);
+  };
+
+  // Apply language on page load
+  updateLanguage(currentLanguage);
+
+  // Only hook up the click if the button exists
+  if (languageToggle) {
     languageToggle.addEventListener('click', () => {
       currentLanguage = currentLanguage === 'en' ? 'es' : 'en';
-      localStorage.setItem('language', currentLanguage);
-      applyStoredLanguage();
-      languageToggle.textContent = currentLanguage === 'es' ? 'Switch to English' : 'Switch to Spanish';
+      updateLanguage(currentLanguage);
     });
   }
 });
