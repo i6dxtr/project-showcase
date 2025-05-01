@@ -18,7 +18,9 @@
       </button>
     </div>
 
-    <h1 id="product-name" class="mb-4">Product Details</h1>
+    <h1 id="product-name" class="mb-4"
+        data-lang-en="Product Details"
+        data-lang-es="Detalles del Producto">Product Details</h1>
 
     <div class="mb-4">
       <img id="captured-image" alt="Captured Product" class="img-fluid shadow">
@@ -75,6 +77,15 @@
         // Add more mappings as needed
       };
 
+      // Spanish product name translations
+      const product_translations = {
+        'Kroger Creamy Peanut Butter': 'Mantequilla de Maní Cremosa Kroger',
+        'Great Value Twist and Shout Cookies': 'Galletas Twist and Shout Great Value',
+        'Morton Coarse Kosher Salt': 'Sal Kosher Gruesa Morton',
+        'Kroger Extra Virgin Olive Oil': 'Aceite de Oliva Extra Virgen Kroger'
+        // Add more translations as needed
+      };
+
       // Get stored values
       const storedProductCode = localStorage.getItem('rawProductCode') || localStorage.getItem('productName');
       let currentLanguage = localStorage.getItem('language') || 'en';
@@ -86,6 +97,21 @@
             ? el.getAttribute('data-lang-es') 
             : el.getAttribute('data-lang-en');
         });
+        
+        // Also update product name with proper translation if in Spanish
+        if (storedProductCode) {
+          const displayName = product_mapping[storedProductCode.toLowerCase()] || storedProductCode;
+          const translatedPrefix = lang === 'es' ? 'Producto: ' : 'Product: ';
+          
+          // Translate product name if language is Spanish and translation exists
+          let displayTranslatedName = displayName;
+          if (lang === 'es' && product_translations[displayName]) {
+            displayTranslatedName = product_translations[displayName];
+          }
+          
+          document.getElementById('product-name').textContent = `${translatedPrefix}${displayTranslatedName}`;
+        }
+        
         localStorage.setItem('language', lang);
       };
 
@@ -95,9 +121,18 @@
       // Set product name with proper mapping
       if (storedProductCode) {
         const displayName = product_mapping[storedProductCode.toLowerCase()] || storedProductCode;
-        document.getElementById('product-name').textContent = `Product: ${displayName}`;
+        const prefix = currentLanguage === 'es' ? 'Producto: ' : 'Product: ';
+        
+        // Apply translation if needed
+        let displayTranslatedName = displayName;
+        if (currentLanguage === 'es' && product_translations[displayName]) {
+          displayTranslatedName = product_translations[displayName];
+        }
+        
+        document.getElementById('product-name').textContent = `${prefix}${displayTranslatedName}`;
       } else {
-        document.getElementById('product-name').textContent = 'Unknown Product';
+        const unknownText = currentLanguage === 'es' ? 'Producto Desconocido' : 'Unknown Product';
+        document.getElementById('product-name').textContent = unknownText;
       }
 
       // Set stored image if available
@@ -114,6 +149,7 @@
 
       // Query helpers
       const queryResult = document.getElementById('query-result');
+      queryResult.style.display = 'none';  // Hide initially
 
       const fetchQuery = async (queryType) => {
         queryResult.style.display = 'block';
@@ -132,10 +168,11 @@
 
           const data = await response.json();
           if (data.success) {
+            // Display details and audio player
             queryResult.innerHTML = `
               <p>${data.details}</p>
-              <audio controls>
-                <source src="${data.audio_url}" type="audio/mpeg">
+              <audio controls autoplay>
+                <source src="${API_URL}${data.audio_url}" type="audio/wav">
                 ${currentLanguage === 'es' 
                   ? 'Su navegador no soporta el elemento de audio.'
                   : 'Your browser does not support the audio element.'}

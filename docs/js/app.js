@@ -1,4 +1,4 @@
-/* app.js - Corrected Version */
+/* app.js - Complete Version with Spanish Translation Support */
 const API_URL = "https://cd4d-75-187-72-180.ngrok-free.app";
 
 class VisionApp {
@@ -22,6 +22,15 @@ class VisionApp {
       'product-c': 'Morton Coarse Kosher Salt',
       'product-d': 'Kroger Extra Virgin Olive Oil',
       // Add more mappings as needed
+    };
+
+    // Add Spanish translations for product names
+    this.product_translations = {
+      'Kroger Creamy Peanut Butter': 'Mantequilla de Maní Cremosa Kroger',
+      'Great Value Twist and Shout Cookies': 'Galletas Twist and Shout Great Value',
+      'Morton Coarse Kosher Salt': 'Sal Kosher Gruesa Morton',
+      'Kroger Extra Virgin Olive Oil': 'Aceite de Oliva Extra Virgen Kroger'
+      // Add more translations as needed
     };
 
     this.setupEventListeners();
@@ -50,17 +59,28 @@ class VisionApp {
       this.populateCameraSelect(videoInputs);
     } catch (err) {
       console.error('Error enumerating devices:', err);
-      this.resultDiv.textContent = 'Error: Could not list camera devices';
+      this.resultDiv.textContent = this.currentLanguage === 'es' 
+        ? 'Error: No se pudieron enumerar los dispositivos de cámara' 
+        : 'Error: Could not list camera devices';
     }
   }
 
   populateCameraSelect(videoInputs) {
     this.cameraSelect.innerHTML = '';
-    this.cameraSelect.add(new Option('Default camera', 'default'));
-    this.cameraSelect.add(new Option('Front (selfie)', 'user'));
-    this.cameraSelect.add(new Option('Rear', 'environment'));
+    
+    // Translate camera options based on current language
+    const defaultText = this.currentLanguage === 'es' ? 'Cámara predeterminada' : 'Default camera';
+    const frontText = this.currentLanguage === 'es' ? 'Frontal (selfie)' : 'Front (selfie)';
+    const rearText = this.currentLanguage === 'es' ? 'Trasera' : 'Rear';
+    
+    this.cameraSelect.add(new Option(defaultText, 'default'));
+    this.cameraSelect.add(new Option(frontText, 'user'));
+    this.cameraSelect.add(new Option(rearText, 'environment'));
+    
     videoInputs.forEach((device, idx) => {
-      const label = device.label || `Camera ${idx + 1}`;
+      const label = device.label || (this.currentLanguage === 'es' 
+        ? `Cámara ${idx + 1}` 
+        : `Camera ${idx + 1}`);
       this.cameraSelect.add(new Option(label, device.deviceId));
     });
   }
@@ -108,7 +128,9 @@ class VisionApp {
         this.currentStream   = fallback;
       } catch (fbErr) {
         console.error('Fallback also failed:', fbErr);
-        this.resultDiv.textContent = 'Error: Cannot access camera';
+        this.resultDiv.textContent = this.currentLanguage === 'es' 
+          ? 'Error: No se puede acceder a la cámara' 
+          : 'Error: Cannot access camera';
       }
     }
   }
@@ -130,7 +152,7 @@ class VisionApp {
     const spinner    = document.getElementById('spinner');
     const resultText = document.getElementById('result-text');
     spinner.style.display = 'inline-block';
-    resultText.textContent = 'Processing…';
+    resultText.textContent = this.currentLanguage === 'es' ? 'Procesando…' : 'Processing…';
     this.captureButton.disabled = true;
 
     try {
@@ -149,15 +171,30 @@ class VisionApp {
         
         // Get display name from mapping for showing to user
         const displayName = this.product_mapping[data.prediction.toLowerCase()] || data.prediction;
-        resultText.textContent = `Predicted: ${displayName}`;
+        
+        // Translate product name if Spanish is selected
+        let translatedName = displayName;
+        if (this.currentLanguage === 'es' && this.product_translations[displayName]) {
+          translatedName = this.product_translations[displayName];
+        }
+        
+        const predictedText = this.currentLanguage === 'es' 
+          ? `Producto identificado: ${translatedName}` 
+          : `Predicted: ${translatedName}`;
+          
+        resultText.textContent = predictedText;
         
         this.showQuerySection(data.prediction);
       } else {
-        resultText.textContent = `Error: ${data.error}`;
+        resultText.textContent = this.currentLanguage === 'es'
+          ? `Error: ${data.error || 'Error desconocido'}`
+          : `Error: ${data.error || 'Unknown error'}`;
       }
     } catch (err) {
       console.error(err);
-      resultText.textContent = 'Error: Could not connect to server';
+      resultText.textContent = this.currentLanguage === 'es'
+        ? 'Error: No se pudo conectar al servidor'
+        : 'Error: Could not connect to server';
     } finally {
       spinner.style.display = 'none';
       this.captureButton.disabled = false;
@@ -172,7 +209,15 @@ class VisionApp {
     
     // Apply the product mapping to get friendly name
     const displayName = this.product_mapping[productCode.toLowerCase()] || productCode;
-    this.productNameEl.textContent = `Product: ${displayName}`;
+    
+    // Translate product name if Spanish is selected
+    let translatedName = displayName;
+    if (this.currentLanguage === 'es' && this.product_translations[displayName]) {
+      translatedName = this.product_translations[displayName];
+    }
+    
+    const prefix = this.currentLanguage === 'es' ? 'Producto: ' : 'Product: ';
+    this.productNameEl.textContent = `${prefix}${translatedName}`;
   }
 
   async fetchQuery(queryType) {
@@ -180,6 +225,7 @@ class VisionApp {
     const productCode = localStorage.getItem('rawProductCode') || localStorage.getItem('productName');
     const language = this.currentLanguage;
     
+    this.queryResult.style.display = 'block';
     this.queryResult.textContent = language === 'es' ? 'Cargando...' : 'Loading...';
 
     try {
@@ -197,8 +243,8 @@ class VisionApp {
       if (data.success) {
         this.queryResult.innerHTML = `
           <p>${data.details}</p>
-          <audio controls>
-            <source src="${data.audio_url}" type="audio/mpeg">
+          <audio controls autoplay>
+            <source src="${API_URL}${data.audio_url}" type="audio/wav">
             ${language === 'es' 
               ? 'Su navegador no soporta el elemento de audio.'
               : 'Your browser does not support the audio element.'}
@@ -232,21 +278,70 @@ class VisionApp {
         ? el.getAttribute('data-lang-es') 
         : el.getAttribute('data-lang-en');
     });
+    
+    // Update camera select options when language changes
+    if (this.cameraSelect) {
+      const currentValue = this.cameraSelect.value;
+      this.getCameraDevices().then(() => {
+        this.cameraSelect.value = currentValue;
+      });
+    }
+    
     localStorage.setItem('language', language);
     this.currentLanguage = language;
+    
+    // Update any current content in the query result
+    if (this.queryResult && this.queryResult.style.display !== 'none') {
+      this.refreshCurrentQuery();
+    }
+  }
+  
+  /**
+   * Refresh the current query with the updated language
+   * Useful when language is changed while a result is displayed
+   */
+  refreshCurrentQuery() {
+    // Only refresh if there's already a result showing
+    if (!this.queryResult || this.queryResult.style.display === 'none') {
+      return;
+    }
+    
+    // Find which button is currently active (based on which query was last fetched)
+    const buttons = ['nutrition-btn', 'allergen-btn', 'price-btn'];
+    const activeButton = buttons.find(id => document.getElementById(id).classList.contains('active'));
+    
+    if (activeButton) {
+      // Re-fetch the same query type with the new language
+      const queryType = activeButton.replace('-btn', '');
+      this.fetchQuery(queryType);
+    }
   }
 
   /* ---------- Listeners ----------------------------------------------------- */
 
   setupEventListeners() {
     this.captureButton.addEventListener('click', () => this.captureImage());
-    this.retakeButton .addEventListener('click', () => this.retakeImage());
+    this.retakeButton.addEventListener('click', () => this.retakeImage());
     this.cameraSelect.addEventListener('change', () => this.initializeCamera(this.cameraSelect.value));
 
-    document.getElementById('nutrition-btn').addEventListener('click', () => this.fetchQuery('nutrition'));
-    document.getElementById('allergen-btn').addEventListener('click', () => this.fetchQuery('allergen'));
-    document.getElementById('price-btn')   .addEventListener('click', () => this.fetchQuery('price'));
-    document.getElementById('go-back-btn') .addEventListener('click', () => this.goBack());
+    // Add active class handling to track which button was last clicked
+    const queryButtons = ['nutrition-btn', 'allergen-btn', 'price-btn'];
+    
+    queryButtons.forEach(btnId => {
+      const btn = document.getElementById(btnId);
+      btn.addEventListener('click', () => {
+        // Remove active class from all buttons
+        queryButtons.forEach(id => document.getElementById(id).classList.remove('active'));
+        // Add active class to clicked button
+        btn.classList.add('active');
+        
+        // Get query type from button ID
+        const queryType = btnId.replace('-btn', '');
+        this.fetchQuery(queryType);
+      });
+    });
+    
+    document.getElementById('go-back-btn').addEventListener('click', () => this.goBack());
     
     // language toggle listener
     document.getElementById('language-toggle').addEventListener('click', () => {
@@ -258,6 +353,13 @@ class VisionApp {
   goBack() {
     this.querySection.style.display = 'none';
     this.captureSection.style.display = 'block';
+    
+    // Clear active state from all query buttons
+    const queryButtons = ['nutrition-btn', 'allergen-btn', 'price-btn'];
+    queryButtons.forEach(id => document.getElementById(id).classList.remove('active'));
+    
+    // Hide query result
+    this.queryResult.style.display = 'none';
   }
 }
 

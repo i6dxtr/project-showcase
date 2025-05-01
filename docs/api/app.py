@@ -8,7 +8,7 @@ import pyttsx3
 import sqlite3
 from googletrans import Translator
 import os
-
+import re
 
 app = Flask(__name__)
 CORS(app)
@@ -125,7 +125,7 @@ def query():
         # Construct database path
         db_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'db', 'products.db'))
         print(f"Database path: {db_path}", file=sys.stderr)
-        print(f"Querying for product: {product_name}, type: {query_type}", file=sys.stderr)
+        print(f"Querying for product: {product_name}, type: {query_type}, language: {language}", file=sys.stderr)
 
         # Connect to database
         connection = sqlite3.connect(db_path)
@@ -268,15 +268,89 @@ def query():
 
         connection.close()
 
-        # Translate if Spanish is requested
+        # Create a translated version if Spanish is requested
+        original_text = detail_text  # Store the original English text
+        translated_text = detail_text  # Default to the original text
+        
         if language == 'es':
+            print(f"Translating text to Spanish: {detail_text}", file=sys.stderr)
             try:
+                # Method 1: Use googletrans library
                 translator = Translator()
-                detail_text = translator.translate(detail_text, src='en', dest='es').text
+                
+                # Log the original text for debugging
+                print(f"Original text for translation: {detail_text}", file=sys.stderr)
+                
+                # Perform the translation
+                translation = translator.translate(detail_text, src='en', dest='es')
+                translated_text = translation.text
+                
+                # Log the translated result
+                print(f"Translated text from API: {translated_text}", file=sys.stderr)
+                
+                # Apply manual corrections for common food terms that might not translate well
+                # This ensures more accurate and consistent translations
+                translations_map = {
+                    "Calories": "Calorías",
+                    "Fat": "Grasa",
+                    "Cholesterol": "Colesterol", 
+                    "Sodium": "Sodio",
+                    "Carbs": "Carbohidratos",
+                    "Fiber": "Fibra",
+                    "Sugar": "Azúcar",
+                    "Protein": "Proteína",
+                    "Price": "Precio",
+                    "Allergen Information": "Información de Alérgenos",
+                    "contains": "contiene",
+                    "may contain": "puede contener",
+                    "free from": "libre de",
+                    "No allergens listed": "No se enumeran alérgenos"
+                }
+                
+                # If the translation failed or seems incorrect, use our manual dictionary
+                if not translated_text or translated_text == detail_text:
+                    print("Translation API failed, using dictionary fallback", file=sys.stderr)
+                    translated_text = detail_text
+                    for en_term, es_term in translations_map.items():
+                        translated_text = translated_text.replace(en_term, es_term)
+                else:
+                    # Apply corrections to the API translation for consistency
+                    for en_term, es_term in translations_map.items():
+                        if en_term in detail_text:
+                            pattern = re.compile(re.escape(en_term), re.IGNORECASE)
+                            translated_text = pattern.sub(es_term, translated_text)
+                
             except Exception as e:
-                print(f"Translation error: {e}", file=sys.stderr)
-                # Continue with English if translation fails
-                pass
+                print(f"Translation error: {str(e)}", file=sys.stderr)
+                
+                # Method 2: Fallback to dictionary-based translation if the API fails
+                translated_text = detail_text
+                
+                # Apply simple dictionary-based translations
+                translations = {
+                    'Calories': 'Calorías',
+                    'Fat': 'Grasa',
+                    'Cholesterol': 'Colesterol',
+                    'Sodium': 'Sodio',
+                    'Carbs': 'Carbohidratos',
+                    'Fiber': 'Fibra',
+                    'Sugar': 'Azúcar',
+                    'Protein': 'Proteína',
+                    'Price': 'Precio',
+                    'Allergen Information': 'Información de Alérgenos',
+                    'contains': 'contiene',
+                    'may contain': 'puede contener',
+                    'free from': 'libre de',
+                    'No allergens listed': 'No se enumeran alérgenos'
+                }
+                
+                for en_term, es_term in translations.items():
+                    translated_text = translated_text.replace(en_term, es_term)
+                
+                print(f"Fallback translation: {translated_text}", file=sys.stderr)
+        
+        # Use the translated text for detail_text if in Spanish mode
+        detail_text = translated_text
 
         # Generate TTS audio
         try:
@@ -285,9 +359,13 @@ def query():
             # Configure voice based on language
             voices = engine.getProperty('voices')
             if language == 'es':
+                # Find a Spanish voice if available
                 spanish_voice = next((v for v in voices if 'spanish' in v.name.lower()), None)
                 if spanish_voice:
                     engine.setProperty('voice', spanish_voice.id)
+                    print(f"Using Spanish voice: {spanish_voice.name}", file=sys.stderr)
+                else:
+                    print("No Spanish voice found, using default voice", file=sys.stderr)
             else:  # Default to English
                 english_voice = next((v for v in voices if 'english' in v.name.lower()), None)
                 if english_voice:
@@ -301,15 +379,17 @@ def query():
             # Create static directory if it doesn't exist
             os.makedirs('static', exist_ok=True)
             
-            # Generate audio file
+            # Generate audio file with the translated text
             engine.save_to_file(detail_text, audio_path)
             engine.runAndWait()
 
+            # Return both the text and audio URL
             return jsonify({
                 'success': True,
                 'details': detail_text,
                 'audio_url': f"/static/{filename}",
-                'product_name': normalized_product  # Return the normalized product name
+                'product_name': normalized_product,
+                'language': language
             })
 
         except Exception as e:
@@ -319,7 +399,8 @@ def query():
                 'success': True,
                 'details': detail_text,
                 'error': "Audio generation failed",
-                'product_name': normalized_product
+                'product_name': normalized_product,
+                'language': language
             })
 
     except Exception as e:
