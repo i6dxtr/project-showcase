@@ -356,6 +356,10 @@ def query():
         try:
             engine = pyttsx3.init()
             
+            voices = engine.getProperty('voices')
+            print(f"Found {len(voices)} voices:", [v.name for v in voices], file=sys.stderr)
+
+
             # Configure voice based on language
             voices = engine.getProperty('voices')
             if language == 'es':
