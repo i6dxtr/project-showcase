@@ -35,47 +35,65 @@ def create_session():
 
 @app.route('/predict', methods=['POST'])
 def predict():
-    print("/predict called")
+    print("Starting /predict", file=sys.stderr)
+    start_time = time.time()  # Track start time
     try:
-        if 'image' not in request.files:
-            return jsonify({'success': False, 'error': 'No image provided'}), 400
-            
-        image_file = request.files['image']
-        if image_file.filename == '':
-            return jsonify({'success': False, 'error': 'No selected file'}), 400
+        # Log the incoming request headers
+        print("Request Headers:", request.headers, file=sys.stderr)
 
-        # Reset file pointer and read into memory
-        image_file.seek(0)
-        image_bytes = image_file.read()
-        
-        # Verify reasonable size (e.g., 5MB max)
-        if len(image_bytes) > 5 * 1024 * 1024:
-            return jsonify({'success': False, 'error': 'Image too large (max 5MB)'}), 400
+        # Get the image file from the request
+        file = request.files.get('image')
+        if not file:
+            print("No image file provided.", file=sys.stderr)
+            return jsonify(success=False, error="No image file provided"), 400
 
+        # Log the size of the uploaded file
+        print(f"Uploaded file size: {file.content_length} bytes", file=sys.stderr)
+
+        # Create a session for the downstream request
+        session = create_session()
+
+        # Prepare files for request
         files = {
-            'image': (image_file.filename, image_bytes, image_file.content_type)
+            'image': (
+                file.filename,
+                file.stream,
+                file.content_type
+            )
         }
 
-        session = create_session()
+        print("Forwarding request to the internal prediction service...", file=sys.stderr)
+
+        # Send the file to the downstream service
         response = session.post(
-            'https://i6dxtr.pythonanywhere.com/predict',
+            'http://localhost:8000/predict',  # Update this to appropriate URL
             files=files,
-            timeout=60,  # Increase timeout to 60 seconds
+            timeout=30,
             headers={'Connection': 'close'}
         )
+        
+        # Log response status code
+        print(f"Received response status code: {response.status_code}", file=sys.stderr)
 
-        if response.status_code != 200:
-            return jsonify({
-                'success': False,
-                'error': f"Prediction service error: {response.status_code}",
-                'details': response.text[:200]  # Include first 200 chars of response
-            }), 500
-
+        # Return the response as a JSON object
         return response.json()
+        
     except requests.exceptions.RequestException as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
+        print(f"Request error: {str(e)}", file=sys.stderr)
+        return jsonify({
+            'success': False,
+            'error': f'Connection error: {str(e)}'
+        }), 503
     except Exception as e:
-        return jsonify({'success': False, 'error': f"Unexpected error: {str(e)}"}), 500
+        print(f"Error in prediction: {str(e)}", file=sys.stderr)
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+    finally:
+        end_time = time.time()  # Track end time
+        duration = end_time - start_time
+        print(f"Processing completed in {duration:.2f} seconds.", file=sys.stderr)
 
 @app.route('/query', methods=['POST'])
 def query():
