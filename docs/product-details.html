@@ -65,18 +65,19 @@
   <script>
     const API_URL = "https://ba61-75-187-72-180.ngrok-free.app";
 
-    document.addEventListener('DOMContentLoaded', () => {
-      // Product mapping - ensure it's consistent across pages
-      const product_mapping = {
-        'product-a': 'Kroger Creamy Peanut Butter',
-        'product-b': 'Great Value Twist and Shout Cookies',
-        'product-c': 'Morton Coarse Kosher Salt',
-        'product-d': 'Kroger Extra Virgin Olive Oil',
-        // Add more mappings as needed
-      };
+    // Product name mapping
+    const product_mapping = {
+      'product-a': 'Kroger Creamy Peanut Butter',
+      'product-b': 'Great Value Twist and Shout Cookies',
+      'product-c': 'Morton Coarse Kosher Salt',
+      'product-d': 'Kroger Extra Virgin Olive Oil'
+      // Add more mappings as needed
+    };
 
+    document.addEventListener('DOMContentLoaded', () => {
       // Get stored values
-      const storedProductCode = localStorage.getItem('productName');
+      const storedName = localStorage.getItem('productName');
+      const productName = storedName || 'Unknown Product';
       let currentLanguage = localStorage.getItem('language') || 'en';
 
       // Update all translations
@@ -92,13 +93,9 @@
       // Initialize language
       updateLanguage(currentLanguage);
 
-      // Set product name with proper mapping
-      if (storedProductCode) {
-        const displayName = product_mapping[storedProductCode.toLowerCase()] || storedProductCode;
-        document.getElementById('product-name').textContent = `Product: ${displayName}`;
-      } else {
-        document.getElementById('product-name').textContent = 'Unknown Product';
-      }
+      // Set product name using mapped value if available
+      const displayName = product_mapping[productName] || productName;
+      document.getElementById('product-name').textContent = `Product: ${displayName}`;
 
       // Set stored image if available
       const savedImg = localStorage.getItem('capturedImage');
@@ -124,7 +121,7 @@
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              product_name: storedProductCode,  // Use the raw product code for API
+              product_name: productName, // Using original product name for API calls
               query_type: queryType,
               language: currentLanguage
             })
