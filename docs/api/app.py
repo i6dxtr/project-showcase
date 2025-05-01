@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
@@ -9,6 +9,17 @@ from googletrans import Translator
 import os
 
 app = Flask(__name__)
+
+# Add root route handler
+@app.route('/')
+def home():
+    return jsonify({
+        'message': 'Welcome to the Product Information API',
+        'endpoints': {
+            '/predict': 'POST image for prediction',
+            '/query': 'POST product queries'
+        }
+    })
 
 def create_session():
     session = requests.Session()
@@ -140,8 +151,13 @@ def query():
         print(f"❌ Error in /query: {e}", file=sys.stderr)
         return jsonify(success=False, error=str(e)), 500
 
+# Add route to serve static files
+@app.route('/static/<path:filename>')
+def serve_static(filename):
+    return send_from_directory('static', filename)
+
 if __name__ == '__main__':
     # Create static directory if it doesn't exist
     if not os.path.exists('static'):
         os.makedirs('static')
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=True)
