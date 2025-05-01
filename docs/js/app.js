@@ -1,4 +1,4 @@
-/* app.js - Complete Version with Spanish Translation Support */
+/* app.js - Complete Version with Spanish Translation Support and gTTS compatibility */
 const API_URL = "https://cd4d-75-187-72-180.ngrok-free.app";
 
 class VisionApp {

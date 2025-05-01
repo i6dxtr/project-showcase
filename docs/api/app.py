@@ -4,7 +4,7 @@ import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 import sys
-import pyttsx3
+from gtts import gTTS
 import sqlite3
 from googletrans import Translator
 import os
@@ -352,40 +352,21 @@ def query():
         # Use the translated text for detail_text if in Spanish mode
         detail_text = translated_text
 
-        # Generate TTS audio
+        # Generate TTS audio using gTTS instead of pyttsx3
         try:
-            engine = pyttsx3.init()
-            
-            voices = engine.getProperty('voices')
-            print(f"Found {len(voices)} voices:", [v.name for v in voices], file=sys.stderr)
-
-
-            # Configure voice based on language
-            voices = engine.getProperty('voices')
-            if language == 'es':
-                # Find a Spanish voice if available
-                spanish_voice = next((v for v in voices if 'spanish' in v.name.lower()), None)
-                if spanish_voice:
-                    engine.setProperty('voice', spanish_voice.id)
-                    print(f"Using Spanish voice: {spanish_voice.name}", file=sys.stderr)
-                else:
-                    print("No Spanish voice found, using default voice", file=sys.stderr)
-            else:  # Default to English
-                english_voice = next((v for v in voices if 'english' in v.name.lower()), None)
-                if english_voice:
-                    engine.setProperty('voice', english_voice.id)
-
-            # Generate unique filename
-            safe_product_name = normalized_product.replace(' ', '_').replace('-', '_')
-            filename = f"{safe_product_name}_{query_type}_{language}.wav"
-            audio_path = os.path.join('static', filename)
-            
             # Create static directory if it doesn't exist
             os.makedirs('static', exist_ok=True)
             
-            # Generate audio file with the translated text
-            engine.save_to_file(detail_text, audio_path)
-            engine.runAndWait()
+            # Generate unique filename
+            safe_product_name = normalized_product.replace(' ', '_').replace('-', '_')
+            filename = f"{safe_product_name}_{query_type}_{language}.mp3"  # Note: gTTS creates mp3 files, not wav
+            audio_path = os.path.join('static', filename)
+            
+            # Create gTTS object with the translated text
+            tts = gTTS(text=detail_text, lang=language, slow=False)
+            
+            # Save the audio file
+            tts.save(audio_path)
 
             # Add debugging code here
             print(f"Audio file generated at: {audio_path}", file=sys.stderr)
