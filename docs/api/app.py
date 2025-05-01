@@ -51,7 +51,8 @@ def predict():
         response = session.post(
             'https://i6dxtr.pythonanywhere.com/predict',
             files=files,
-            timeout=30
+            timeout=60,  # Increase timeout to 60 seconds
+            headers={'Connection': 'close'}
         )
 
         # Check for HTTP response issues
