@@ -9,9 +9,20 @@ import sqlite3
 from googletrans import Translator
 import os
 import re
+import threading
 
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
+
+# Create a global text-to-speech engine with thread lock
+tts_engine = None
+tts_lock = threading.Lock()
+
+def get_tts_engine():
+    global tts_engine
+    if tts_engine is None:
+        tts_engine = pyttsx3.init()
+    return tts_engine
 
 # Add root route handler
 @app.route('/')
@@ -103,6 +114,46 @@ def predict():
             'success': False,
             'error': str(e)
         }), 500
+
+def generate_tts_audio(text, audio_path, language='en'):
+    """
+    Generate TTS audio file with proper synchronization
+    """
+    with tts_lock:
+        try:
+            engine = get_tts_engine()
+            
+            # Configure voice based on language
+            voices = engine.getProperty('voices')
+            if language == 'es':
+                # Find a Spanish voice if available
+                spanish_voice = next((v for v in voices if 'spanish' in v.name.lower()), None)
+                if spanish_voice:
+                    engine.setProperty('voice', spanish_voice.id)
+                    print(f"Using Spanish voice: {spanish_voice.name}", file=sys.stderr)
+                else:
+                    print("No Spanish voice found, using default voice", file=sys.stderr)
+            else:  # Default to English
+                english_voice = next((v for v in voices if 'english' in v.name.lower()), None)
+                if english_voice:
+                    engine.setProperty('voice', english_voice.id)
+
+            # Generate audio file
+            engine.save_to_file(text, audio_path)
+            engine.runAndWait()
+            
+            # Add debugging info
+            print(f"Audio file generated at: {audio_path}", file=sys.stderr)
+            if os.path.exists(audio_path):
+                print(f"File size: {os.path.getsize(audio_path)} bytes", file=sys.stderr)
+            else:
+                print(f"Warning: Audio file was not created", file=sys.stderr)
+                
+            return True
+                
+        except Exception as e:
+            print(f"TTS error: {e}", file=sys.stderr)
+            return False
 
 @app.route('/query', methods=['POST'])
 def query():
@@ -354,23 +405,6 @@ def query():
 
         # Generate TTS audio
         try:
-            engine = pyttsx3.init()
-            
-            # Configure voice based on language
-            voices = engine.getProperty('voices')
-            if language == 'es':
-                # Find a Spanish voice if available
-                spanish_voice = next((v for v in voices if 'spanish' in v.name.lower()), None)
-                if spanish_voice:
-                    engine.setProperty('voice', spanish_voice.id)
-                    print(f"Using Spanish voice: {spanish_voice.name}", file=sys.stderr)
-                else:
-                    print("No Spanish voice found, using default voice", file=sys.stderr)
-            else:  # Default to English
-                english_voice = next((v for v in voices if 'english' in v.name.lower()), None)
-                if english_voice:
-                    engine.setProperty('voice', english_voice.id)
-
             # Generate unique filename
             safe_product_name = normalized_product.replace(' ', '_').replace('-', '_')
             filename = f"{safe_product_name}_{query_type}_{language}.wav"
@@ -379,25 +413,23 @@ def query():
             # Create static directory if it doesn't exist
             os.makedirs('static', exist_ok=True)
             
-            # Generate audio file with the translated text
-            engine.save_to_file(detail_text, audio_path)
-            engine.runAndWait()
-
-            # Add debugging code here
-            print(f"Audio file generated at: {audio_path}", file=sys.stderr)
-            if os.path.exists(audio_path):
-                print(f"File size: {os.path.getsize(audio_path)} bytes", file=sys.stderr)
-            else:
-                print(f"Warning: Audio file was not created", file=sys.stderr)
+            # Generate audio file with the translated text using our synchronized function
+            audio_generated = generate_tts_audio(detail_text, audio_path, language)
 
             # Return both the text and audio URL
-            return jsonify({
+            response_data = {
                 'success': True,
                 'details': detail_text,
-                'audio_url': f"/static/{filename}",
                 'product_name': normalized_product,
                 'language': language
-            })
+            }
+            
+            if audio_generated:
+                response_data['audio_url'] = f"/static/{filename}"
+            else:
+                response_data['error'] = "Audio generation failed"
+                
+            return jsonify(response_data)
 
         except Exception as e:
             print(f"TTS error: {e}", file=sys.stderr)
