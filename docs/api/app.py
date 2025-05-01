@@ -36,7 +36,6 @@ def create_session():
 @app.route('/predict', methods=['POST'])
 def predict():
     print("Starting /predict", file=sys.stderr)
-    start_time = time.time()  # Track start time
     try:
         # Log the incoming request headers
         print("Request Headers:", request.headers, file=sys.stderr)
@@ -91,7 +90,6 @@ def predict():
             'error': str(e)
         }), 500
     finally:
-        end_time = time.time()  # Track end time
         duration = end_time - start_time
         print(f"Processing completed in {duration:.2f} seconds.", file=sys.stderr)
 
