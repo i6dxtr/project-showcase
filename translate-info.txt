@@ -1,0 +1,63 @@
+✅ Step-by-Step: JavaScript + API Key + Google Translate API
+1. Enable the API & Get Your API Key
+
+    Go to Google Cloud Console
+
+    Enable Cloud Translation API
+
+    Navigate to APIs & Services > Credentials
+
+    Create an API Key
+
+
+
+PYTHON:
+pip install requests
+
+from flask import Flask, request, jsonify
+import requests
+
+app = Flask(__name__)
+
+GOOGLE_API_KEY = 'YOUR_API_KEY'  # Store this securely in env variables in production
+TRANSLATE_URL = 'https://translation.googleapis.com/language/translate/v2'
+
+@app.route('/translate', methods=['POST'])
+def translate():
+    data = request.json
+    text = data.get('text')
+    target = data.get('target', 'es')  # Default to Spanish if not specified
+
+    payload = {
+        'q': text,
+        'target': target,
+        'format': 'text',
+        'key': GOOGLE_API_KEY
+    }
+
+    response = requests.post(TRANSLATE_URL, json=payload)
+    if response.status_code == 200:
+        translated_text = response.json()['data']['translations'][0]['translatedText']
+        return jsonify({'translated': translated_text})
+    else:
+        return jsonify({'error': 'Translation failed'}), 500
+
+if __name__ == '__main__':
+    app.run(debug=True)
+
+
+
+
+
+JAVASCRIPT:
+fetch('/translate', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ text: 'Hello world!', target: 'fr' })
+})
+.then(response => response.json())
+.then(data => {
+  console.log('Translated text:', data.translated);
+})
+.catch(error => console.error('Error:', error));
+
