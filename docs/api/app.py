@@ -123,7 +123,7 @@ def query():
             return jsonify(success=False, error="Missing product_name or query_type"), 400
 
         # Construct database path
-        db_path = os.path.join(os.path.dirname(__file__), '..', 'db', 'products.db')
+        db_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'db', 'products.db'))
         print(f"Database path: {db_path}", file=sys.stderr)
 
         # Connect to database
