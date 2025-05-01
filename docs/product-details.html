@@ -65,6 +65,15 @@
   <script>
     const API_URL = "https://ba61-75-187-72-180.ngrok-free.app";
 
+    // Product name mapping
+    const product_mapping = {
+      'product-a': 'Kroger Creamy Peanut Butter',
+      'product-b': 'Great Value Twist and Shout Cookies',
+      'product-c': 'Morton Coarse Kosher Salt',
+      'product-d': 'Kroger Extra Virgin Olive Oil'
+      // Add more mappings as needed
+    };
+
     document.addEventListener('DOMContentLoaded', () => {
       // Get stored values
       const storedName = localStorage.getItem('productName');
@@ -84,8 +93,9 @@
       // Initialize language
       updateLanguage(currentLanguage);
 
-      // Set product name (don't translate this)
-      document.getElementById('product-name').textContent = `Product: ${productName}`;
+      // Set product name using mapped value if available
+      const displayName = product_mapping[productName] || productName;
+      document.getElementById('product-name').textContent = `Product: ${displayName}`;
 
       // Set stored image if available
       const savedImg = localStorage.getItem('capturedImage');
@@ -111,7 +121,7 @@
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              product_name: productName,
+              product_name: productName, // Using original product name for API calls
               query_type: queryType,
               language: currentLanguage
             })
