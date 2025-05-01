@@ -74,6 +74,11 @@
       // Add more mappings as needed
     };
 
+    // Function to get display name
+    const getDisplayName = (productId) => {
+      return product_mapping[productId] || productId;
+    };
+
     document.addEventListener('DOMContentLoaded', () => {
       // Get stored values
       const storedName = localStorage.getItem('productName');
@@ -93,9 +98,8 @@
       // Initialize language
       updateLanguage(currentLanguage);
 
-      // Set product name using mapped value if available
-      const displayName = product_mapping[productName] || productName;
-      document.getElementById('product-name').textContent = `Product: ${displayName}`;
+      // Set product name using mapped value
+      document.getElementById('product-name').textContent = `Product: ${getDisplayName(productName)}`;
 
       // Set stored image if available
       const savedImg = localStorage.getItem('capturedImage');
@@ -129,8 +133,15 @@
 
           const data = await response.json();
           if (data.success) {
+            // Replace any product IDs in the response with display names
+            let formattedDetails = data.details;
+            Object.keys(product_mapping).forEach(key => {
+              formattedDetails = formattedDetails.replace(new RegExp(key, 'g'), getDisplayName(key));
+            });
+
             queryResult.innerHTML = `
-              <p>${data.details}</p>
+              <h4>${getDisplayName(productName)}</h4>
+              <p>${formattedDetails}</p>
               <audio controls>
                 <source src="${data.audio_url}" type="audio/mpeg">
                 ${currentLanguage === 'es' 
