@@ -21,6 +21,7 @@ class VisionApp {
       'product-a': './stock/salt.png',
       'product-b': './stock/pb.png',
       'product-c': './stock/cookies.png',
+      'product-d': './stock/cookies.png'
     };
 
     // Product mapping - Define it here so it's available throughout the class
@@ -28,6 +29,7 @@ class VisionApp {
       'product-a': 'Morton Coarse Kosher Salt',
       'product-b': 'Kroger Creamy Peanut Butter',
       'product-c': 'Great Value Twist and Shout Cookies',
+      'product-d': 'Great Value Twist and Shout Cookies'
       // Add more mappings as needed
     };
 

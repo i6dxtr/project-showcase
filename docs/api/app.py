@@ -142,11 +142,18 @@ def query():
         #     'product-d': 'Kroger Extra Virgin Olive Oil',  # Replace with actual product name from database
         #     # Add more mappings as needed
         # }
+        # product_mapping = {
+        #     'product-a': 'Morton Coarse Kosher Salt',  # Example mapping for product-a
+        #     'product-b': 'Kroger Creamy Peanut Butter',  # Replace with actual product name from database
+        #     'product-c': 'Great Value Twist and Shout Cookies',  # Replace with actual product name from database
+        #     'product-d': 'Kroger Extra Virgin Olive Oil',  # Replace with actual product name from database
+        #     # Add more mappings as needed
+        # }
         product_mapping = {
             'product-a': 'Morton Coarse Kosher Salt',  # Example mapping for product-a
             'product-b': 'Kroger Creamy Peanut Butter',  # Replace with actual product name from database
             'product-c': 'Great Value Twist and Shout Cookies',  # Replace with actual product name from database
-            'product-d': 'Kroger Extra Virgin Olive Oil',  # Replace with actual product name from database
+            'product-d': 'Great Value Twist and Shout Cookies',  # Replace with actual product name from database
             # Add more mappings as needed
         }
         # Normalize product name to match database entries
