@@ -68,7 +68,7 @@ def predict():
 
         # Send the file to the downstream service
         response = session.post(
-            'http://localhost:8000/predict',  # Update this to appropriate URL
+            'http://localhost:8080/predict',  # Update this to appropriate URL
             files=files,
             timeout=30,
             headers={'Connection': 'close'}
