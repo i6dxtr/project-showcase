@@ -98,174 +98,57 @@ def query():
         data = request.json
         if not data:
             return jsonify(success=False, error="No data provided"), 400
-
+        
         product_name = data.get('product_name')
-        query_type   = data.get('query_type')
-        language     = data.get('language', 'en')
+        query_type = data.get('query_type')
+        language = data.get('language', 'en')
 
-        if not product_name or not query_type:
-            return jsonify(success=False, error="Missing product_name or query_type"), 400
-
-        # --- Database setup ---
-        db_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'db', 'products.db'))
-        print(f"Database path: {db_path}", file=sys.stderr)
-        print(f"Querying for product: {product_name}, type: {query_type}, language: {language}", file=sys.stderr)
-
-        conn = sqlite3.connect(db_path)
-        conn.row_factory = sqlite3.Row
-        cursor = conn.cursor()
-
-        # --- Map raw labels to real names ---
-        product_mapping = {
-            'product-a': 'Kroger Creamy Peanut Butter',
-            'product-b': 'Great Value Twist and Shout Cookies',
-            'product-c': 'Morton Coarse Kosher Salt',
-            'product-d': 'Kroger Extra Virgin Olive Oil',
-        }
-        normalized = product_mapping.get(product_name.lower().strip(), product_name)
-        print(f"Normalized product name: {normalized}", file=sys.stderr)
-
-        # Debug: list products
-        cursor.execute("SELECT id, name FROM products")
-        all_p = cursor.fetchall()
-        for p in all_p:
-            print(f"ID: {p['id']}, Name: {p['name']}", file=sys.stderr)
-
-        # Build name→ID map
-        id_map = {p['name'].lower(): p['id'] for p in all_p}
-        print("Product ID mapping:", id_map, file=sys.stderr)
-
-        # --- Fetch details ---
-        detail_text = ""
-        result      = None
-
-        if query_type == 'nutrition':
-            sql = """
-                SELECT calories, total_fat, cholesterol, sodium,
-                       total_carbs, fiber, sugar, protein
-                  FROM nutritional_info
-                  JOIN products ON products.id = nutritional_info.product_id
-                 WHERE LOWER(products.name) = LOWER(?)
-            """
-            cursor.execute(sql, (normalized,))
-            result = cursor.fetchone()
-            if result:
-                detail_text = (
-                    f"Calories: {result['calories']}, Fat: {result['total_fat']}, "
-                    f"Cholesterol: {result['cholesterol']}, Sodium: {result['sodium']}, "
-                    f"Carbs: {result['total_carbs']}, Fiber: {result['fiber']}, "
-                    f"Sugar: {result['sugar']}, Protein: {result['protein']}"
-                )
-
-        elif query_type == 'allergen':
-            sql = """
-                SELECT allergy
-                  FROM nutritional_info
-                  JOIN products ON products.id = nutritional_info.product_id
-                 WHERE LOWER(products.name) = LOWER(?)
-            """
-            cursor.execute(sql, (normalized,))
-            result = cursor.fetchone()
-            if result:
-                detail_text = f"Allergen Information: {result['allergy']}"
-
-        elif query_type == 'price':
-            sql = "SELECT cost FROM products WHERE LOWER(name) = LOWER(?)"
-            cursor.execute(sql, (normalized,))
-            result = cursor.fetchone()
-            if result:
-                detail_text = f"Price: ${result['cost']:.2f}"
-
-        else:
-            conn.close()
-            return jsonify(success=False, error="Invalid query_type"), 400
-
-        # Fallback ID-based lookup if no result
-        if not result and product_name.startswith('product-'):
-            letter = product_name.split('-')[-1]
-            pid    = ord(letter) - ord('a') + 1
-            print(f"Direct lookup ID={pid}", file=sys.stderr)
-
-            if query_type == 'nutrition':
-                cursor.execute("SELECT * FROM nutritional_info WHERE product_id = ?", (pid,))
-            elif query_type == 'allergen':
-                cursor.execute("SELECT allergy FROM nutritional_info WHERE product_id = ?", (pid,))
-            else:
-                cursor.execute("SELECT cost FROM products WHERE id = ?", (pid,))
-            result = cursor.fetchone()
-            if result:
-                # rebuild detail_text same as above
-                if query_type == 'nutrition':
-                    detail_text = (
-                        f"Calories: {result['calories']}, Fat: {result['total_fat']}, "
-                        f"Cholesterol: {result['cholesterol']}, Sodium: {result['sodium']}, "
-                        f"Carbs: {result['total_carbs']}, Fiber: {result['fiber']}, "
-                        f"Sugar: {result['sugar']}, Protein: {result['protein']}"
-                    )
-                elif query_type == 'allergen':
-                    detail_text = f"Allergen Information: {result['allergy']}"
-                else:
-                    detail_text = f"Price: ${result['cost']:.2f}"
-
-        if not result:
-            conn.close()
-            return jsonify(success=False, error=f"Product not found: {product_name}"), 404
-
-        conn.close()
-
-        # --- Translate if needed ---
-        if language == 'es':
-            print("Translating to Spanish...", file=sys.stderr)
-            translator = Translator()
-            try:
-                translation = translator.translate(detail_text, src='en', dest='es')
-                detail_text = translation.text
-            except Exception as e:
-                print(f"Translation error: {e}", file=sys.stderr)
-                # fallback: simple replacements
-                for en, es in {
-                    "Calories": "Calorías", "Fat": "Grasa",
-                    "Cholesterol": "Colesterol", "Sodium": "Sodio",
-                    "Carbs": "Carbohidratos", "Fiber": "Fibra",
-                    "Sugar": "Azúcar", "Protein": "Proteína",
-                    "Price": "Precio", "Allergen Information": "Información de Alérgenos"
-                }.items():
-                    detail_text = detail_text.replace(en, es)
-
-        # --- Generate TTS ---
-        safe_name = re.sub(r'\W+', '_', normalized)
-        fn        = f"{safe_name}_{query_type}_{language}.wav"
-        static_d  = current_app.static_folder
-        os.makedirs(static_d, exist_ok=True)
-        audio_fp  = os.path.join(static_d, fn)
-
-        # Select voice
-        if language == 'es':
-            sp = next((v for v in voices if 'spanish' in v.name.lower()), None)
-            if sp: engine.setProperty('voice', sp.id)
-        else:
-            en = next((v for v in voices if 'english' in v.name.lower()), None)
-            if en: engine.setProperty('voice', en.id)
-
-        engine.save_to_file(detail_text, audio_fp)
+        # Get the query details based on type
+        details = get_product_details(product_name, query_type, language)
+        
+        # Generate audio file
         try:
-            engine.runAndWait()
-        except RuntimeError:
-            # loop already running → pump once
-            engine.iterate()
+            # Ensure static directory exists
+            static_dir = os.path.join(os.path.dirname(__file__), 'static')
+            os.makedirs(static_dir, exist_ok=True)
 
-        return jsonify({
-            'success':      True,
-            'details':      detail_text,
-            'audio_url':    url_for('static', filename=fn),
-            'product_name': normalized,
-            'language':     language
-        })
+            # Create unique filename
+            timestamp = int(time.time())
+            safe_name = product_name.replace(' ', '_').lower()
+            filename = f"{safe_name}_{query_type}_{language}_{timestamp}.mp3"
+            filepath = os.path.join(static_dir, filename)
+
+            # Generate speech file
+            tts = gTTS(text=details, lang=language)
+            tts.save(filepath)
+
+            # Clean up old files
+            for old_file in os.listdir(static_dir):
+                if old_file.endswith('.mp3'):
+                    old_path = os.path.join(static_dir, old_file)
+                    if time.time() - os.path.getctime(old_path) > 3600:  # Remove files older than 1 hour
+                        os.remove(old_path)
+
+            return jsonify({
+                'success': True,
+                'details': details,
+                'audio_url': f"/static/{filename}",
+                'language': language
+            })
+
+        except Exception as e:
+            print(f"TTS Error: {e}", file=sys.stderr)
+            # Return text-only response if audio fails
+            return jsonify({
+                'success': True,
+                'details': details,
+                'error': f"Audio generation failed: {str(e)}",
+                'language': language
+            })
 
     except Exception as e:
         print(f"Query error: {e}", file=sys.stderr)
         return jsonify(success=False, error=str(e)), 500
-
 # ------------------------------------------------------------------------
 # Route to test DB connectivity
 # ------------------------------------------------------------------------

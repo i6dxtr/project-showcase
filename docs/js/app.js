@@ -234,47 +234,67 @@ class VisionApp {
 }
 
 
-  async fetchQuery(queryType) {
-    // Get the original product code for API call
-    const productCode = localStorage.getItem('rawProductCode') || localStorage.getItem('productName');
-    const language = this.currentLanguage;
-    
-    this.queryResult.style.display = 'block';
-    this.queryResult.textContent = language === 'es' ? 'Cargando...' : 'Loading...';
+async fetchQuery(queryType) {
+  const productCode = localStorage.getItem('rawProductCode') || localStorage.getItem('productName');
+  const language = this.currentLanguage;
+  
+  this.queryResult.style.display = 'block';
+  this.queryResult.textContent = language === 'es' ? 'Cargando...' : 'Loading...';
 
-    try {
+  try {
       const response = await fetch(`${API_URL}/query`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          product_name: productCode, // Use raw product code for API
-          query_type: queryType, 
-          language 
-        })
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+              product_name: productCode,
+              query_type: queryType, 
+              language 
+          })
       });
 
       const data = await response.json();
       if (data.success) {
-        this.queryResult.innerHTML = `
-          <p>${data.details}</p>
-          <audio controls autoplay>
-            <source src="${API_URL}${data.audio_url}" type="audio/wav">
-            ${language === 'es' 
-              ? 'Su navegador no soporta el elemento de audio.'
-              : 'Your browser does not support the audio element.'}
-          </audio>`;
+          let html = `<p>${data.details}</p>`;
+          
+          if (data.audio_url) {
+              html += `
+                  <div class="audio-container">
+                      <audio controls autoplay>
+                          <source src="${API_URL}${data.audio_url}" type="audio/mp3">
+                          ${language === 'es' 
+                              ? 'Su navegador no soporta el elemento de audio.'
+                              : 'Your browser does not support the audio element.'}
+                      </audio>
+                      <button class="btn btn-sm btn-secondary mt-2" onclick="document.querySelector('audio').play()">
+                          ${language === 'es' ? 'Reproducir' : 'Play Again'}
+                      </button>
+                  </div>
+              `;
+          }
+          
+          this.queryResult.innerHTML = html;
+
+          // Auto-play handling
+          const audioElement = this.queryResult.querySelector('audio');
+          if (audioElement) {
+              audioElement.onerror = (e) => {
+                  console.error('Audio playback error:', e);
+                  // Remove audio player if there's an error
+                  audioElement.parentElement.remove();
+              };
+          }
       } else {
-        this.queryResult.textContent = language === 'es'
-          ? `Error: No se pudo obtener el resultado`
-          : `Error: Could not fetch query result`;
+          this.queryResult.textContent = language === 'es'
+              ? `Error: No se pudo obtener el resultado`
+              : `Error: Could not fetch query result`;
       }
-    } catch (err) {
+  } catch (err) {
       console.error(err);
       this.queryResult.textContent = language === 'es'
-        ? 'Error: No se pudo conectar al servidor'
-        : 'Error: Could not connect to server';
-    }
+          ? 'Error: No se pudo conectar al servidor'
+          : 'Error: Could not connect to server';
   }
+}
 
   retakeImage() {
     this.canvas.classList.remove('show');

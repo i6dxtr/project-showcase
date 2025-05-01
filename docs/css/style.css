@@ -74,3 +74,31 @@
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     margin-bottom: 15px;
 }
+
+.audio-container {
+    margin: 20px auto;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    max-width: 300px;
+}
+
+.audio-container audio {
+    width: 100%;
+    margin-bottom: 10px;
+}
+
+.audio-container button {
+    width: 100%;
+    padding: 8px;
+    background: #6c757d;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.audio-container button:hover {
+    background: #5a6268;
+}
