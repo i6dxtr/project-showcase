@@ -11,7 +11,7 @@ import os
 import re
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
 
 # Add root route handler
 @app.route('/')
@@ -382,6 +382,13 @@ def query():
             # Generate audio file with the translated text
             engine.save_to_file(detail_text, audio_path)
             engine.runAndWait()
+
+            # Add debugging code here
+            print(f"Audio file generated at: {audio_path}", file=sys.stderr)
+            if os.path.exists(audio_path):
+                print(f"File size: {os.path.getsize(audio_path)} bytes", file=sys.stderr)
+            else:
+                print(f"Warning: Audio file was not created", file=sys.stderr)
 
             # Return both the text and audio URL
             return jsonify({
