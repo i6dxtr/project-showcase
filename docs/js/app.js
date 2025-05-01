@@ -25,12 +25,11 @@ class VisionApp {
 
     // Product mapping - Define it here so it's available throughout the class
     this.product_mapping = {
-      'product-a': 'Kroger Creamy Peanut Butter',
-      'product-b': 'Great Value Twist and Shout Cookies',
-      'product-c': 'Morton Coarse Kosher Salt',
-      'product-d': 'Kroger Extra Virgin Olive Oil',
-      // Add more mappings as needed
-    };
+      'product-a': './stock/pb.png',
+      'product-b': './stock/cookies.png',
+      'product-c': './stock/salt.png',
+      'product-d': './stock/cracker.png',
+  };
 
     // Add Spanish translations for product names
     this.product_translations = {
