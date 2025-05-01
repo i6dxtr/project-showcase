@@ -11,7 +11,7 @@ import traceback
 app = Flask(__name__)
 CORS(app)
 
-# Define the model globally
+# Define the model 
 try:
     MODEL_PATH = '../../lib_mdl/my_product_classifier_BETTER.h5'
     MAPPING_PATH = '../../lib_mdl/class_mapping.json'
