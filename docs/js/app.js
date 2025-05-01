@@ -19,7 +19,7 @@ class VisionApp {
       'product-a': './stock/pb.png',
       'product-b': './stock/cookies.png',
       'product-c': './stock/salt.png',
-      'product-d': './stock/cracker.png',
+      'product-d': './',
     };
 
     // Product mapping - Define it here so it's available throughout the class
