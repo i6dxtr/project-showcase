@@ -1,5 +1,3 @@
-/* docs/js/app.js */
-
 const API_URL = "https://f9cf-75-187-72-180.ngrok-free.app";
 
 class VisionApp {
@@ -202,30 +200,3 @@ class VisionApp {
 }
 
 window.addEventListener('load', () => new VisionApp());
-
-document.addEventListener('DOMContentLoaded', () => {
-  const languageToggle = document.getElementById('language-toggle');
-
-  // Retrieve the current language from localStorage or default to English
-  let currentLanguage = localStorage.getItem('language') || 'en';
-
-  // Function to update the language
-  const updateLanguage = (language) => {
-    // Re-scan all elements that have data-lang-en
-    const elementsToTranslate = document.querySelectorAll('[data-lang-en]');
-    elementsToTranslate.forEach(el => {
-      el.textContent = language === 'es' ? el.getAttribute('data-lang-es') : el.getAttribute('data-lang-en');
-    });
-    languageToggle.textContent = language === 'es' ? 'Switch to English' : 'Switch to Spanish';
-    localStorage.setItem('language', language);
-  };
-
-  // Initialize the page with the current language
-  updateLanguage(currentLanguage);
-
-  // Add event listener to toggle the language
-  languageToggle.addEventListener('click', () => {
-    currentLanguage = currentLanguage === 'en' ? 'es' : 'en';
-    updateLanguage(currentLanguage);
-  });
-});

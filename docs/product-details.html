@@ -10,11 +10,6 @@
 </head>
 <body class="bg-light d-flex flex-column min-vh-100">
   <div class="container text-center my-5">
-    <!-- Language Toggle Button -->
-    <div class="mb-3">
-      <button id="language-toggle" class="btn btn-primary" data-lang-en="Switch to Spanish" data-lang-es="Switch to English">Switch to Spanish</button>
-    </div>
-
     <h1 id="product-name" class="mb-4" data-lang-en="Product Details" data-lang-es="Detalles del Producto">Product Details</h1>
 
     <!-- Display the previously captured image -->
@@ -25,7 +20,7 @@
     <!-- Buttons for additional information -->
     <div class="d-grid gap-2">
       <button id="nutrition-btn" class="btn btn-info" data-lang-en="Nutrition Facts" data-lang-es="Información Nutricional">Nutrition Facts</button>
-      <button id="allergen-btn" class="btn btn-warning" data-lang-en="Allergen Information" data-lang-es="Información de Alergias">Allergen Information</button>
+      <button id="allergen-btn" class="btn btn-warning" data-lang-en="Allergies Information" data-lang-es="Información de Alergias">Allergies Information</button>
       <button id="price-btn" class="btn btn-success" data-lang-en="Price" data-lang-es="Precio">Price</button>
       <button id="go-back-btn" class="btn btn-secondary" data-lang-en="Go Back" data-lang-es="Regresar">Go Back</button>
     </div>
@@ -41,80 +36,45 @@
   <!-- Bootstrap JS -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <!-- App JS -->
+  <script src="js/app.js"></script>
   <script>
-    // Define API URL (should match your app.js)
-    const API_URL = "https://f9cf-75-187-72-180.ngrok-free.app";
-
     document.addEventListener('DOMContentLoaded', () => {
       const productName = localStorage.getItem('productName') || 'Unknown Product';
-      let currentLanguage = localStorage.getItem('language') || 'en';
+      const language = localStorage.getItem('language') || 'en';
 
-      // Function to update language
-      const updateLanguage = (language) => {
-        document.querySelectorAll('[data-lang-en]').forEach(el => {
-          el.textContent = language === 'es' ? el.getAttribute('data-lang-es') : el.getAttribute('data-lang-en');
-        });
-        localStorage.setItem('language', language);
-      };
-
-      // Initialize language
-      updateLanguage(currentLanguage);
-
-      // Language toggle
-      document.getElementById('language-toggle').addEventListener('click', () => {
-        currentLanguage = currentLanguage === 'en' ? 'es' : 'en';
-        updateLanguage(currentLanguage);
+      // Set product name and language
+      document.getElementById('product-name').textContent = productName;
+      document.querySelectorAll('[data-lang-en]').forEach(el => {
+        el.textContent = language === 'es' ? el.getAttribute('data-lang-es') : el.getAttribute('data-lang-en');
       });
 
-      // Set the product name (no translation needed for this)
-      document.getElementById('product-name').textContent = productName;
-
-      // Load the captured image if available
-      const capturedImage = localStorage.getItem('capturedImage');
-      if (capturedImage) {
-        document.getElementById('captured-image').src = capturedImage;
-      }
-
-      // Query buttons functionality
+      // Query buttons
       const queryResult = document.getElementById('query-result');
       const fetchQuery = async (queryType) => {
         queryResult.style.display = 'block';
-        queryResult.textContent = currentLanguage === 'es' ? 'Cargando...' : 'Loading...';
+        queryResult.textContent = language === 'es' ? 'Cargando...' : 'Loading...';
 
         try {
           const response = await fetch(`${API_URL}/query`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-              product_name: productName, 
-              query_type: queryType, 
-              language: currentLanguage 
-            })
+            body: JSON.stringify({ product_name: productName, query_type: queryType, language })
           });
           const data = await response.json();
 
           if (data.success) {
-            queryResult.innerHTML = `
-              <p>${data.details}</p>
-              <audio controls>
-                <source src="${data.audio_url}" type="audio/mpeg">
-                Your browser does not support the audio element.
-              </audio>
-            `;
+            queryResult.innerHTML = `<p>${data.details}</p>`;
+            const audio = new Audio(data.audio_url);
+            audio.play();
           } else {
-            queryResult.textContent = currentLanguage === 'es' 
-              ? 'Error: No se pudo obtener el resultado.' 
-              : 'Error: Could not fetch query result.';
+            queryResult.textContent = language === 'es' ? 'Error: No se pudo obtener el resultado.' : 'Error: Could not fetch query result.';
           }
         } catch (error) {
           console.error(error);
-          queryResult.textContent = currentLanguage === 'es' 
-            ? 'Error: No se pudo conectar al servidor.' 
-            : 'Error: Could not connect to server.';
+          queryResult.textContent = language === 'es' ? 'Error: No se pudo conectar al servidor.' : 'Error: Could not connect to server.';
         }
       };
 
-      // Event listeners for query buttons
       document.getElementById('nutrition-btn').addEventListener('click', () => fetchQuery('nutrition'));
       document.getElementById('allergen-btn').addEventListener('click', () => fetchQuery('allergen'));
       document.getElementById('price-btn').addEventListener('click', () => fetchQuery('price'));

@@ -13,14 +13,7 @@
 
 <body class="bg-light d-flex flex-column min-vh-100">
   <div class="container text-center my-5">
-    <h1 class="mb-4" data-lang-en="🧠 Smart Vision Classifier" data-lang-es="🧠 Clasificador de Visión Inteligente">
-      🧠 Smart Vision Classifier
-    </h1>
-
-    <!-- Language Toggle Button -->
-    <div class="mb-3">
-      <button id="language-toggle" class="btn btn-primary">Switch to Spanish</button>
-    </div>
+    <h1 class="mb-4">🧠 Smart Vision Classifier</h1>
 
     <div id="capture-section" class="card shadow p-4">
       <div class="video-container">
@@ -32,26 +25,22 @@
           <option value="">Select Camera...</option>
         </select>
       </div>
-      <button id="capture" class="btn btn-primary mb-3 me-2" data-lang-en="Capture & Predict" data-lang-es="Capturar y Predecir">
-        Capture & Predict
-      </button>
-      <button id="retake" class="btn btn-secondary mb-3" style="display:none;" data-lang-en="Retake" data-lang-es="Reintentar">
-        Retake
-      </button>
+      <button id="capture" class="btn btn-primary mb-3 me-2">Capture & Predict</button>
+      <button id="retake" class="btn btn-secondary mb-3" style="display:none;">Retake</button>
       <div id="result" class="alert alert-secondary d-flex align-items-center justify-content-center" role="alert">
         <div id="spinner" class="spinner-border me-2" role="status" style="display:none;"></div>
-        <span id="result-text" data-lang-en="Awaiting capture..." data-lang-es="Esperando captura...">Awaiting capture...</span>
+        <span id="result-text">Awaiting capture...</span>
       </div>
     </div>
-  </div>
 
-  <div id="query-section" class="card shadow p-4" style="display:none;">
-    <h2 id="product-name" class="mb-4"></h2>
-    <button id="nutrition-btn" class="btn btn-info mb-2">Nutrition Facts</button>
-    <button id="allergen-btn" class="btn btn-warning mb-2">Allergen Information</button>
-    <button id="price-btn" class="btn btn-success mb-2">Price</button>
-    <button id="go-back-btn" class="btn btn-secondary">Go Back</button>
-    <div id="query-result" class="mt-4"></div>
+    <div id="query-section" class="card shadow p-4" style="display:none;">
+      <h2 id="product-name" class="mb-4"></h2>
+      <button id="nutrition-btn" class="btn btn-info mb-2">Nutrition Facts</button>
+      <button id="allergen-btn" class="btn btn-warning mb-2">Allergen Information</button>
+      <button id="price-btn" class="btn btn-success mb-2">Price</button>
+      <button id="go-back-btn" class="btn btn-secondary">Go Back</button>
+      <div id="query-result" class="mt-4"></div>
+    </div>
   </div>
 
   <footer class="mt-auto text-center p-3">
