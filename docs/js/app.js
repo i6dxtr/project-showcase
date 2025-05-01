@@ -18,16 +18,16 @@ class VisionApp {
     this.currentAudio   = null;   // Track current audio element
 
     this.product_images = {
-      'product-a': './stock/pb.png',
-      'product-b': './stock/cookies.png',
-      'product-c': './stock/salt.png',
+      'product-a': './stock/salt.png',
+      'product-b': './stock/pb.png',
+      'product-c': './stock/cookies.png',
     };
 
     // Product mapping - Define it here so it's available throughout the class
     this.product_mapping = {
-      'product-a': 'Kroger Creamy Peanut Butter',
-      'product-b': 'Great Value Twist and Shout Cookies',
-      'product-c': 'Morton Coarse Kosher Salt',
+      'product-a': 'Morton Coarse Kosher Salt',
+      'product-b': 'Kroger Creamy Peanut Butter',
+      'product-c': 'Great Value Twist and Shout Cookies',
       // Add more mappings as needed
     };
 

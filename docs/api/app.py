@@ -135,14 +135,20 @@ def query():
         cursor = connection.cursor()
 
         # Map prediction labels to actual product names in the database
+        # product_mapping = {
+        #     'product-a': 'Kroger Creamy Peanut Butter',  # Example mapping for product-a
+        #     'product-b': 'Great Value Twist and Shout Cookies',  # Replace with actual product name from database
+        #     'product-c': 'Morton Coarse Kosher Salt',  # Replace with actual product name from database
+        #     'product-d': 'Kroger Extra Virgin Olive Oil',  # Replace with actual product name from database
+        #     # Add more mappings as needed
+        # }
         product_mapping = {
-            'product-a': 'Kroger Creamy Peanut Butter',  # Example mapping for product-a
-            'product-b': 'Great Value Twist and Shout Cookies',  # Replace with actual product name from database
-            'product-c': 'Morton Coarse Kosher Salt',  # Replace with actual product name from database
+            'product-a': 'Morton Coarse Kosher Salt',  # Example mapping for product-a
+            'product-b': 'Kroger Creamy Peanut Butter',  # Replace with actual product name from database
+            'product-c': 'Great Value Twist and Shout Cookies',  # Replace with actual product name from database
             'product-d': 'Kroger Extra Virgin Olive Oil',  # Replace with actual product name from database
             # Add more mappings as needed
         }
-        
         # Normalize product name to match database entries
         normalized_product = product_mapping.get(product_name.lower().strip(), product_name)
         print(f"Normalized product name: {normalized_product}", file=sys.stderr)
