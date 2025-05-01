@@ -37,34 +37,44 @@ def create_session():
 def predict():
     print("/predict called")
     try:
-        session = create_session()
+        if 'image' not in request.files:
+            return jsonify({'success': False, 'error': 'No image provided'}), 400
+            
+        image_file = request.files['image']
+        if image_file.filename == '':
+            return jsonify({'success': False, 'error': 'No selected file'}), 400
 
-        # Prepare files for request
+        # Reset file pointer and read into memory
+        image_file.seek(0)
+        image_bytes = image_file.read()
+        
+        # Verify reasonable size (e.g., 5MB max)
+        if len(image_bytes) > 5 * 1024 * 1024:
+            return jsonify({'success': False, 'error': 'Image too large (max 5MB)'}), 400
+
         files = {
-            'image': (
-                request.files['image'].filename,
-                request.files['image'].stream,
-                request.files['image'].content_type
-            )
+            'image': (image_file.filename, image_bytes, image_file.content_type)
         }
 
+        session = create_session()
         response = session.post(
             'https://i6dxtr.pythonanywhere.com/predict',
             files=files,
             timeout=30
         )
 
-        # Check for HTTP response issues
         if response.status_code != 200:
-            raise ValueError(f"Unexpected status code: {response.status_code}")
+            return jsonify({
+                'success': False,
+                'error': f"Prediction service error: {response.status_code}",
+                'details': response.text[:200]  # Include first 200 chars of response
+            }), 500
 
         return response.json()
+    except requests.exceptions.RequestException as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
     except Exception as e:
-        print(f"Error in prediction: {e}", file=sys.stderr)
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
+        return jsonify({'success': False, 'error': f"Unexpected error: {str(e)}"}), 500
 
 @app.route('/query', methods=['POST'])
 def query():
