@@ -80,37 +80,20 @@
       // Query buttons functionality
       const queryResult = document.getElementById('query-result');
       const fetchQuery = async (queryType) => {
-    queryResult.style.display = 'block';
-    queryResult.textContent = translations[currentLanguage].loading;
+        queryResult.style.display = 'block';
+        queryResult.textContent = currentLanguage === 'es' ? 'Cargando...' : 'Loading...';
 
-    try {
-        // Add mapping here
-        const productMapping = {
-            'product-a': 'Salt',
-            'product-b': 'Peanut Butter',
-            'product-c': 'Cookies',
-            'product-d': 'Crackers'
-        };
-        
-        // Get stored product name and ensure we send raw label format to API
-        let apiProductName = productName;
-        // If it's a display name, convert back to raw label
-        Object.entries(productMapping).forEach(([raw, display]) => {
-            if (display === productName) {
-                apiProductName = raw;
-            }
-        });
-
-        const response = await fetch(`${API_URL}/query`, {
+        try {
+          const response = await fetch(`${API_URL}/query`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
-                product_name: apiProductName,  // Now sends correct raw label
-                query_type: queryType, 
-                language: currentLanguage 
+              product_name: productName, 
+              query_type: queryType, 
+              language: currentLanguage 
             })
-        });
-         const data = await response.json();
+          });
+          const data = await response.json();
 
           if (data.success) {
             queryResult.innerHTML = `
