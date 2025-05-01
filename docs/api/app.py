@@ -432,11 +432,15 @@ def query():
                 'details': detail_text,
                 'audio_url': f"/static/{filename}",
                 'product_name': normalized_product,
+<<<<<<< HEAD
+>>>>>>> b18126b6ed279059af7d198e343701e238c927d5
+=======
 >>>>>>> b18126b6ed279059af7d198e343701e238c927d5
                 'language': language
             })
 
         except Exception as e:
+<<<<<<< HEAD
 <<<<<<< HEAD
             print(f"TTS Error: {e}", file=sys.stderr)
             # Return text-only response if audio fails
@@ -445,6 +449,8 @@ def query():
                 'details': details,
                 'error': f"Audio generation failed: {str(e)}",
 =======
+=======
+>>>>>>> b18126b6ed279059af7d198e343701e238c927d5
             print(f"TTS error: {e}", file=sys.stderr)
             # Return text only if audio generation fails
             return jsonify({
@@ -452,6 +458,9 @@ def query():
                 'details': detail_text,
                 'error': "Audio generation failed",
                 'product_name': normalized_product,
+<<<<<<< HEAD
+>>>>>>> b18126b6ed279059af7d198e343701e238c927d5
+=======
 >>>>>>> b18126b6ed279059af7d198e343701e238c927d5
                 'language': language
             })
@@ -460,9 +469,14 @@ def query():
         print(f"Query error: {e}", file=sys.stderr)
         return jsonify(success=False, error=str(e)), 500
 <<<<<<< HEAD
+<<<<<<< HEAD
 # ------------------------------------------------------------------------
 # Route to test DB connectivity
 # ------------------------------------------------------------------------
+=======
+
+# Add this route to test the database
+>>>>>>> b18126b6ed279059af7d198e343701e238c927d5
 =======
 
 # Add this route to test the database
